@@ -1,7 +1,8 @@
-import { pgTable, serial, integer, text } from 'drizzle-orm/pg-core';
-
-export const task = pgTable('task', {
-	id: serial('id').primaryKey(),
-	title: text('title').notNull(),
-	priority: integer('priority').notNull().default(1)
-});
+// src/lib/server/db/schema.ts
+export * from "./schema/users";
+// export * from "./schema/userProfiles";
+// export * from "./schema/userInfoPrivacy";
+export * from "./schema/enums";
+// export * from "./schema/relations";
+// export * from "./schema/friends";
+export * from "./schema/blogs";
