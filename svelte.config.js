@@ -28,7 +28,8 @@ const config = {
         'style-src': ['self', 'unsafe-inline'],
         'img-src': ['self', 'data:', 'https:'],
         'connect-src': ['self', 'https://*.supabase.co', 'https://*.sentry.io'],
-        'font-src': ['self', 'data:']
+        'font-src': ['self', 'data:'],
+        'frame-src': ['self', 'https://vercel.live'],
       },
       reportOnly: {
         'script-src': ['self', 'https://vercel.live'],
