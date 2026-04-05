@@ -24,14 +24,14 @@ const config = {
       mode: 'auto',
       directives: {
         'default-src': ['self'],
-        'script-src': ['self'],
+        'script-src': ['self', 'https://vercel.live'],
         'style-src': ['self', 'unsafe-inline'],
         'img-src': ['self', 'data:', 'https:'],
         'connect-src': ['self', 'https://*.supabase.co', 'https://*.sentry.io'],
         'font-src': ['self', 'data:']
       },
       reportOnly: {
-        'script-src': ['self'],
+        'script-src': ['self', 'https://vercel.live'],
         'img-src': ['self', 'data:', 'https:'],
         'report-uri': ['https://o4511150140424192.ingest.us.sentry.io/api/4511150146322432/security/?sentry_key=36f25b1bb405a8b4e7de1e3d3b893cde']
       }
