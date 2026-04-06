@@ -3,13 +3,33 @@ import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$env/stati
 import { createServerClient } from '@supabase/ssr';
 import * as Sentry from '@sentry/sveltekit';
 import { sequence } from '@sveltejs/kit/hooks';
-import { type Handle } from '@sveltejs/kit';
+import { type Handle, isRedirect, redirect } from '@sveltejs/kit';
+
+const PUBLIC_ROUTES = [
+  '/',
+  '/about',
+  '/privacy',
+  '/terms',
+  '/robots.txt',
+]
+
+const AUTH_ROUTES = [
+  '/auth/login', 
+  '/auth/signup',
+  '/auth/verify',
+  '/auth/forgotPassword'
+]
+
+const AUTHENTICATED_ONLY_PREFIXES = [
+  '/blog',
+  '/@'
+]
 
 // SENTRY
 export const handleError = Sentry.handleErrorWithSentry();
 
 // SUPABASE HOOK
-const supabase: Handle = async ({ event, resolve }) => {
+const withSupabase: Handle = async ({ event, resolve }) => {
   /**
    * Creates a Supabase client specific to this server request.
    *
@@ -83,7 +103,52 @@ const supabase: Handle = async ({ event, resolve }) => {
 }
 
 // AUTH GUARD HOOK
-// TODO: setup auth guard hook
+// TODO: Improve this hook
+const withAuthGuard: Handle = async ({ event, resolve }) => {
+  const { session, user } = await event.locals.safeGetSession()
+  event.locals.session = session
+  event.locals.user = user
+  
+  const path = event.url.pathname
+  
+  // Redirect logged-in users away from auth routes
+  if (session && AUTH_ROUTES.includes(path)) {
+    throw redirect(303, '/')
+  }
+  
+  // ----------------------------
+  // 1. Public routes
+  // ----------------------------
+  if (PUBLIC_ROUTES.includes(path)) {
+    return await resolve(event)
+  }
+  
+  // ----------------------------
+  // 2. Private admin/mod routes
+  // ----------------------------
+  if (path.startsWith('/private')) {
+    if (!session) throw redirect(303, '/auth/login') // Redirect unauthenticated users to the login page
+
+    if (
+      user?.role !== 'admin'
+    ) {
+      throw redirect(303, '/')
+    }
+
+    return await resolve(event)
+  }
+  
+  // ----------------------------
+  // 3. Authenticated-only routes???
+  // ----------------------------
+  const requiresAuth = AUTHENTICATED_ONLY_PREFIXES.some(prefix => path.startsWith(prefix))
+
+  if (requiresAuth && !session) {
+    throw redirect(303, '/auth/login')
+  }
+  
+  return await resolve(event)
+}
 
 // SECURITY HEADERS HOOK
 const withSecurityHeaders: Handle = async ({ event, resolve }) => {
@@ -98,15 +163,44 @@ const withSecurityHeaders: Handle = async ({ event, resolve }) => {
 };
 
 // ERROR LOGGING HOOK
-// TODO: setup error logging hook
+const withErrorLogging: Handle = async ({ event, resolve }) => {
+  try {
+    return await resolve(event)
+  } catch (error) {
+    Sentry.captureException(error)
+    
+    if (isRedirect(error)) {
+      throw error
+    }
+    
+    const err = error instanceof Error
+      ? error
+      : new Error(String(error))
+    
+    console.error('Server error:', {
+      message: err.message,
+      stack: err.stack,
+      url: event.url.pathname,
+      userId: event.locals.user?.id,
+      sessionId: event.locals.session?.access_token,
+      method: event.request.method,
+      userAgent: event.request.headers.get('user-agent'),
+      ip: event.getClientAddress?.() ?? "unknown",
+      timestamp: new Date().toISOString(),
+    })
+    
+    throw error
+  }
+}
 
 // RATE LIMITING HOOK
 // TODO: setup rate limiting hook
 
 export const handle: Handle = sequence(
-  //withErrorLogging,   // catch errors from all layers
-  Sentry.sentryHandle(),
-  supabase,           // attach supabase to locals
-  //authGuard,          // protect routes using the session
-  withSecurityHeaders // apply security headers
+  Sentry.sentryHandle(), // capture all errors
+  withErrorLogging,      // structured logs
+  // withRateLimiting,      // block abusive traffic
+  withSecurityHeaders,   // apply headers
+  withSupabase,          // create supabase client
+  withAuthGuard          // protect routes
 )
