@@ -50,6 +50,7 @@
 		"@supabase/ssr": "^0.10.0",
 		"@supabase/supabase-js": "^2.100.1",
 		"@vercel/analytics": "^2.0.1",
+		"@vercel/speed-insights": "^2.0.0",
 		"daisyui": "^5.5.19",
 		"zod": "^4.3.6"
 	}
