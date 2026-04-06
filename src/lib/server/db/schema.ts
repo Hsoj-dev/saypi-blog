@@ -4,5 +4,5 @@ export * from "./schema/users";
 // export * from "./schema/userInfoPrivacy";
 export * from "./schema/enums";
 // export * from "./schema/relations";
-// export * from "./schema/friends";
+export * from "./schema/friends";
 export * from "./schema/blogs";
