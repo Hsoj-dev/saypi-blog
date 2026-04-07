@@ -15,6 +15,13 @@
       "when": 1775474389945,
       "tag": "0001_cloudy_zemo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775558324919,
+      "tag": "0002_light_doctor_strange",
+      "breakpoints": true
     }
   ]
 }

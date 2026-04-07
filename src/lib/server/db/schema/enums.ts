@@ -58,4 +58,15 @@ export const friendStatusEnum = pgEnum("friend_status_enum", [
   "pending",   // request sent, waiting for acceptance
   "accepted",  // mutual friendship
   "declined",  // request declined
+  "blocked"    // user blocked
+]);
+
+export const notificationTypeEnum = pgEnum("notification_type_enum", [
+  "friend_request",
+  "friend_accept",
+  "blog_upvote",
+  //"mention_user",
+  "admin_announcement",
+  "profile_milestone",
+  //"potential_friend_joined" // You're batchmate joined (checks campus and grade level)
 ]);

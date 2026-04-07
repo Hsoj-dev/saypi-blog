@@ -6,4 +6,4 @@ export * from "./schema/enums";
 export * from "./schema/relations";
 export * from "./schema/friends";
 export * from "./schema/blogs";
-// export * from "./schema/notifications";
+export * from "./schema/notifications";
