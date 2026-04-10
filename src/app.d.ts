@@ -16,6 +16,7 @@ declare global {
       }>
       session: Session | null
       user: User | null
+      requestId: string;
     }
     interface PageData {
       session: Session | null

@@ -22,6 +22,13 @@
       "when": 1775558324919,
       "tag": "0002_light_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775821420752,
+      "tag": "0003_bumpy_archangel",
+      "breakpoints": true
     }
   ]
 }
