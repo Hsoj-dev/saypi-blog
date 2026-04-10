@@ -28,6 +28,17 @@ const AUTHENTICATED_ONLY_PREFIXES = [
 // SENTRY
 export const handleError = Sentry.handleErrorWithSentry();
 
+// REQUEST ID HOOK
+const withRequestId: Handle = async ({ event, resolve }) => {
+  event.locals.requestId = crypto.randomUUID();
+  
+  const response = await resolve(event)
+
+  response.headers.set('x-request-id', event.locals.requestId);
+	
+  return response
+};
+
 // SUPABASE HOOK
 const withSupabase: Handle = async ({ event, resolve }) => {
   /**
@@ -178,15 +189,15 @@ const withErrorLogging: Handle = async ({ event, resolve }) => {
       : new Error(String(error))
     
     console.error('Server error:', {
+      timestamp: new Date().toISOString(),
       message: err.message,
-      stack: err.stack,
-      url: event.url.pathname,
       userId: event.locals.user?.id,
       sessionId: event.locals.session?.access_token,
+      ip: event.getClientAddress?.() ?? "unknown",
+      stack: err.stack,
+      url: event.url.pathname,
       method: event.request.method,
       userAgent: event.request.headers.get('user-agent'),
-      ip: event.getClientAddress?.() ?? "unknown",
-      timestamp: new Date().toISOString(),
     })
     
     throw error
@@ -198,6 +209,7 @@ const withErrorLogging: Handle = async ({ event, resolve }) => {
 
 export const handle: Handle = sequence(
   Sentry.sentryHandle(), // capture all errors
+  withRequestId,       // assign request id
   withErrorLogging,      // structured logs
   // withRateLimiting,      // block abusive traffic
   withSecurityHeaders,   // apply headers
