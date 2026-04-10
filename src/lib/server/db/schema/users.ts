@@ -2,7 +2,7 @@
 import { pgTable, varchar, text, timestamp, uuid, pgPolicy } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { authenticatedRole, serviceRole } from 'drizzle-orm/supabase';
-import { campusEnum, gradeEnum, privacyEnum, accountTypeEnum } from './enums';
+import { campusEnum, gradeEnum, privacyEnum, accountTypeEnum, sexEnum } from './enums';
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey(), // Primary key that matches Supabase auth.users.id
@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   gradeLevel: gradeEnum("grade_level").notNull(),
   accountType: accountTypeEnum("account_type").default("student").notNull(),
 
+  sex: sexEnum("sex").notNull(),
   bio: varchar("bio", { length: 300 }),
   profilePicUrl: text("profile_pic_url"),
 

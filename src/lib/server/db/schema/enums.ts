@@ -39,7 +39,13 @@ export const accountTypeEnum = pgEnum("account_type_enum", [
   "student", 
   "org", 
   "guest",
+  "mod",
   "admin"
+]);
+
+export const sexEnum = pgEnum("sex_enum", [
+  "male",
+  "female"
 ]);
 
 export const infoPrivacyEnum = pgEnum("info_privacy_enum", [
