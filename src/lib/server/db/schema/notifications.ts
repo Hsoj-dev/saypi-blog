@@ -5,6 +5,8 @@ import { authenticatedRole } from 'drizzle-orm/supabase';
 import { users } from "./users";
 import { notificationTypeEnum } from './enums';
 
+// REMINDER: check RLS and Relations if adding new columns
+
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().defaultRandom(),
   

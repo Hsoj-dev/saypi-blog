@@ -4,6 +4,8 @@ import { sql } from 'drizzle-orm';
 import { authenticatedRole } from 'drizzle-orm/supabase';
 import { users } from "./users";
 
+// REMINDER: check RLS and Relations if adding new columns
+
 export const userProfiles = pgTable("user_profiles", {
   userId: uuid("user_id")
     .primaryKey()

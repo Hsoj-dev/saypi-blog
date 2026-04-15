@@ -29,6 +29,20 @@
       "when": 1775821420752,
       "tag": "0003_bumpy_archangel",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775893970375,
+      "tag": "0004_talented_dracula",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775911170430,
+      "tag": "0005_common_micromax",
+      "breakpoints": true
     }
   ]
 }
