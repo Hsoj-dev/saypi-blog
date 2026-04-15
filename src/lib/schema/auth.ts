@@ -1,18 +1,29 @@
 // src/lib/schema/auth.ts
 import { z } from 'zod';
+import { levels, sexes } from '$lib/utils/options';
+import { campuses } from '$lib/utils/campus';
 
 export const signupSchema = z.object({
   email: z.email({ error: "Invalid email address" }).endsWith("pshs.edu.ph", { error: "Please use your PSHS email" }),
-  username: z.string().min(3, { error: "Username must be at least 3 characters long" }).trim(),
-  password: z.string().min(6, { error: "Password must be at least 6 characters long" }).max(32, {error: "Bruh, can you really memorize that?? - Hsoj ToT"}).trim(),
+  username: z.string().min(1, { error: "Username is required" }).max(64, { error: "Bruh, why is your username so long?? - Hsoj ToT" }).trim(),
+  password: z.string().min(6, { error: "Password must be at least 6 characters long" }).max(32, { error: "Bruh, can you really memorize that?? - Hsoj ToT" }).trim(),
   firstName: z.string().min(1, { error: "First name is required" }).trim(),
   lastName: z.string().min(1, { error: "Last name is required" }).trim(),
-  sex: z.enum(['male', 'female']),
-  gradeLevel: z.enum(["7", "8", "9", "10", "11", "12"], { error: "Please select a valid grade level" }),
-  campus: z.string({ error: "Invalid campus selection" }).min(1, { error: "Please select a campus" }),
+  sex: z.enum(sexes, { error: "Please select a valid sex" }),
+  gradeLevel: z.enum(levels, { error: "Please select a valid grade level" }),
+  campus: z.enum(campuses, { error: "Invalid campus selection" })
 });
 
 export const loginSchema = z.object({
-  username: z.string().trim(),
-  password: z.string().trim()
+  identifier: z.string().min(1, { error: "Please enter your username or email" }).trim(),
+  password: z.string().min(1, { error: "Please enter your password" }).trim()
+});
+
+export const resetPasswordEmailSchema = z.object({
+  email: z.email({ error: "Please input your school email" }).endsWith("pshs.edu.ph", { error: "Please use your PSHS email" })
+});
+
+export const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(1, { error: "Please enter your current password"}).trim(),
+  newPassword: z.string().min(6, { error: "Password must be at least 6 characters long" }).max(32, { error: "Bruh, can you really memorize that?? - Hsoj ToT" }).trim(),
 });

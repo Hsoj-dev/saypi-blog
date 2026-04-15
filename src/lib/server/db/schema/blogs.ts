@@ -5,6 +5,8 @@ import { authenticatedRole } from 'drizzle-orm/supabase';
 import { users } from './users';
 import { blogDiscoverableEnum } from './enums';
 
+// REMINDER: check RLS and Relations if adding new columns
+
 export const blogs = pgTable("blogs", {
   id: uuid("id").primaryKey().defaultRandom(),
 
@@ -39,7 +41,7 @@ export const blogs = pgTable("blogs", {
   pgPolicy('select_blogs', {
     for: 'select',
     to: authenticatedRole,
-    using: sql`deleted_at IS NULL AND (is_discoverable = true OR author_id = auth.uid())`,
+    using: sql`deleted_at IS NULL AND (is_discoverable = 'public' OR author_id = auth.uid())`,
   }),
   
   /*
