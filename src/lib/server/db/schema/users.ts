@@ -1,12 +1,15 @@
-// src/lib/server/db/schema//users.ts
-import { pgTable, varchar, text, timestamp, uuid, pgPolicy } from 'drizzle-orm/pg-core';
+// src/lib/server/db/schema/users.ts
+import { pgTable, varchar, text, timestamp, uuid, pgPolicy, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { authenticatedRole, serviceRole } from 'drizzle-orm/supabase';
 import { campusEnum, gradeEnum, privacyEnum, accountTypeEnum, sexEnum } from './enums';
 
+// REMINDER: check RLS and Relations if adding new columns
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey(), // Primary key that matches Supabase auth.users.id
 
+  email: varchar("email", { length: 255 }).notNull().unique(),
   username: varchar("username", { length: 32 }).notNull().unique(),
   firstName: varchar("first_name", { length: 100 }).notNull(),
   lastName: varchar("last_name", { length: 100 }).notNull(),
@@ -20,18 +23,15 @@ export const users = pgTable("users", {
   bio: varchar("bio", { length: 300 }),
   profilePicUrl: text("profile_pic_url"),
 
-  privacyLevel: privacyEnum("privacy_level")
-    .default("public")
-    .notNull(),
+  privacyLevel: privacyEnum("privacy_level").default("public").notNull(),
 
-  createdAt: timestamp("created_at")
-    .notNull()
-    .defaultNow(),
-
-  updatedAt: timestamp("updated_at")
-    .notNull()
-    .defaultNow()
-}, () => [
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => [
+  uniqueIndex("users_username_idx").on(table.username),
+  uniqueIndex("users_email_idx").on(table.email),
+  index("users_campus_idx").on(table.campus),
+  index("users_grade_idx").on(table.gradeLevel),
   
   /*
   POLICY: Users can view their own profile.
@@ -87,8 +87,3 @@ export const users = pgTable("users", {
     withCheck: sql`true`, // service role can insert any row
   })
 ]).enableRLS();
-
-//   uniqueIndex("users_username_idx").on(table.username),
-//   uniqueIndex("users_email_idx").on(table.email),
-//   index("users_campus_idx").on(table.campus),
-//   index("users_grade_idx").on(table.gradeLevel),
