@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/sveltekit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { type Handle, isRedirect, redirect } from '@sveltejs/kit';
 
+// TODO: Update routes
 const PUBLIC_ROUTES = [
   '/',
   '/about',
@@ -17,7 +18,7 @@ const AUTH_ROUTES = [
   '/auth/login', 
   '/auth/signup',
   '/auth/verify',
-  '/auth/forgotPassword'
+  '/auth/forgot-password'
 ]
 
 const AUTHENTICATED_ONLY_PREFIXES = [
@@ -79,7 +80,7 @@ const withSupabase: Handle = async ({ event, resolve }) => {
    * validating the JWT, this function also calls `getUser()` to validate the
    * JWT before returning the session.
    */
-  event.locals.safeGetSession = async () => {
+  event.locals.getValidatedSession = async () => {
     const {
       data: { session },
     } = await event.locals.supabase.auth.getSession()
@@ -116,7 +117,7 @@ const withSupabase: Handle = async ({ event, resolve }) => {
 // AUTH GUARD HOOK
 // TODO: Improve this hook
 const withAuthGuard: Handle = async ({ event, resolve }) => {
-  const { session, user } = await event.locals.safeGetSession()
+  const { session, user } = await event.locals.getValidatedSession()
   event.locals.session = session
   event.locals.user = user
   
@@ -209,7 +210,7 @@ const withErrorLogging: Handle = async ({ event, resolve }) => {
 
 export const handle: Handle = sequence(
   Sentry.sentryHandle(), // capture all errors
-  withRequestId,       // assign request id
+  withRequestId,         // assign request id
   withErrorLogging,      // structured logs
   // withRateLimiting,      // block abusive traffic
   withSecurityHeaders,   // apply headers
