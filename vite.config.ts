@@ -1,3 +1,4 @@
+// vite.config.ts
 import { sentrySvelteKit } from "@sentry/sveltekit";
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
