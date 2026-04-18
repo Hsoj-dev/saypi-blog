@@ -36,33 +36,27 @@ export const userProfiles = pgTable("user_profiles", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, () => [
   // Users can view their own profile
-  // Users can view profiles of others only if their privacy level is public
-  // TODO: friend based privacy
+  // Others can view a user's profile if their privacy level is public
+  // Friends can view a user's profile if their privacy level is friends-only
   pgPolicy('select_visible_profiles', {
     for: 'select',
     to: authenticatedRole,
     using: sql`
       user_id = auth.uid()
+    
       OR EXISTS (
-        SELECT 1
-        FROM users u
+        SELECT 1 FROM users u
         WHERE u.id = user_profiles.user_id
-        AND u.privacy_level = 'public'
+          AND (
+            u.privacy_level = 'public'
+            OR (
+              u.privacy_level = 'friends-only'
+              AND is_friend(auth.uid(), user_profiles.user_id)
+            )
+          )
       )
-    `,
+    `
   }),
-  
-  // EXISTS (
-  //   SELECT 1
-  //   FROM friends f
-  //   WHERE
-  //     f.status = 'accepted'
-  //     AND (
-  //       (f.requester_id = auth.uid() AND f.addressee_id = user_profiles.user_id)
-  //       OR
-  //       (f.addressee_id = auth.uid() AND f.requester_id = user_profiles.user_id)
-  //     )
-  // )
 
   // Users can update their own profile
   pgPolicy('update_own_profile', {
@@ -71,6 +65,7 @@ export const userProfiles = pgTable("user_profiles", {
     using: sql`user_id = auth.uid()`,
     withCheck: sql`user_id = auth.uid()`,
   }),
+  
   // Users can insert/delete their profile as themselves
   pgPolicy('insert_own_profile', {
     for: 'insert',
