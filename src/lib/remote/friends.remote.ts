@@ -55,6 +55,7 @@ export const getMyFriendsCount = query(async () => {
       )
     )
   );
+  
   return friendsCount[0]?.total ?? 0;
 });
 
@@ -71,6 +72,7 @@ export const getUserFriendsCount = query(z.uuid(), async (userId) => {
       )
     )
   );
+  
   return friendsCount[0]?.total ?? 0;
 });
 
@@ -190,7 +192,7 @@ export const updateFriendshipStatus = command(updateFriendshipSchema, async ({ i
       });
     }
   } catch (err) {
-    logError('FRIENDSHIP_UPDATE_FAILED', { requestId, error: err });
+    logError('FRIENDSHIP_UPDATE_FAILED', { requestId, userId, error: err });
     
     throw error(500, {
       message: 'Failed to update friendship',
@@ -198,7 +200,7 @@ export const updateFriendshipStatus = command(updateFriendshipSchema, async ({ i
     });
   }
   
-  logInfo('FRIENDSHIP_UPDATE', { requestId, userId, updateType: update.status });
+  logInfo('FRIENDSHIP_UPDATE', { requestId, userId, updateType: status });
   
   getMyFriends().refresh();
   getMyPendingRequests().refresh();

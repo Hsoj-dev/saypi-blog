@@ -1,9 +1,9 @@
 // src/lib/server/db/schema/notifications.ts
-import { pgTable, text, timestamp, uuid, pgPolicy, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, timestamp, uuid, pgPolicy, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from 'drizzle-orm';
 import { authenticatedRole } from 'drizzle-orm/supabase';
 import { users } from "./users";
-import { notificationTypeEnum } from './enums';
+import { notificationTypeEnum, entityTypeEnum } from './enums';
 
 // REMINDER: check RLS and Relations if adding new columns
 
@@ -18,7 +18,7 @@ export const notifications = pgTable("notifications", {
 
   type: notificationTypeEnum("type").notNull(),
   
-  entityType: text("entity_type"),
+  entityType: entityTypeEnum("entity_type"),
   entityId: uuid("entity_id"),
 
   readAt: timestamp("read_at"),

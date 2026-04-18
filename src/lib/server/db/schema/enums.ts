@@ -76,3 +76,9 @@ export const notificationTypeEnum = pgEnum("notification_type_enum", [
   //"profile_milestone",
   //"potential_friend_joined" // You're batchmate joined (checks campus and grade level)
 ]);
+
+export const entityTypeEnum = pgEnum("entity_type_enum", [
+  "blog",
+  "user",
+  "announcement",
+]);
