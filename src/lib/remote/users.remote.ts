@@ -8,7 +8,7 @@ import { error } from '@sveltejs/kit';
 import { bioSchema, privacyLevelSchema, profilePicURLSchema, usernameSchema } from '$lib/schema/users';
 import { eq } from 'drizzle-orm';
 
-export const getDatabaseUser = query(z.string(), async (userId) => {
+export const getDatabaseUser = query(z.uuid(), async (userId) => {
   
   const user = await db.query.users.findFirst({
     where: (users, { eq }) => eq(users.id, userId)
@@ -24,7 +24,7 @@ export const getDatabaseUser = query(z.string(), async (userId) => {
 	return user
 })
 
-export const getUserUsername = query(z.string(), async (userId) => {
+export const getUserUsername = query(z.uuid(), async (userId) => {
   
   const user = await db.query.users.findFirst({
     columns: { username: true },
@@ -41,7 +41,7 @@ export const getUserUsername = query(z.string(), async (userId) => {
 	return user
 })
 
-export const getUserProfileHandle = query(z.string(), async (userId) => {
+export const getUserProfileHandle = query(z.uuid(), async (userId) => {
   
   const user = await db.query.users.findFirst({
     columns: { profileHandle: true },
@@ -58,7 +58,7 @@ export const getUserProfileHandle = query(z.string(), async (userId) => {
 	return user
 })
 
-export const getUserAccountType = query(z.string(), async (userId) => {
+export const getUserAccountType = query(z.uuid(), async (userId) => {
   
   const user = await db.query.users.findFirst({
     columns: { accountType: true },
@@ -75,7 +75,7 @@ export const getUserAccountType = query(z.string(), async (userId) => {
 	return user
 })
 
-export const getUserCampus = query(z.string(), async (userId) => {
+export const getUserCampus = query(z.uuid(), async (userId) => {
   
   const user = await db.query.users.findFirst({
     columns: { campus: true },
@@ -92,7 +92,7 @@ export const getUserCampus = query(z.string(), async (userId) => {
 	return user
 })
 
-export const getUserGradeLevel = query(z.string(), async (userId) => {
+export const getUserGradeLevel = query(z.uuid(), async (userId) => {
   
   const user = await db.query.users.findFirst({
     columns: { gradeLevel: true },
@@ -109,34 +109,34 @@ export const getUserGradeLevel = query(z.string(), async (userId) => {
 	return user
 })
 
-export const updateUsername = form(usernameSchema, async (user) => { 
+export const updateUsername = form(usernameSchema, async ({ username }) => { 
   const userId = getUserId();
   await db.update(users).set({
-    username: user.username,
+    username,
     updatedAt: new Date()
   }).where(eq(users.id, userId));
 })
 
-export const updatePrivacyLevel = form(privacyLevelSchema, async (user) => { 
+export const updatePrivacyLevel = form(privacyLevelSchema, async ({ privacyLevel }) => { 
   const userId = getUserId();
   await db.update(users).set({
-    privacyLevel: user.privacyLevel,
+    privacyLevel,
     updatedAt: new Date()
   }).where(eq(users.id, userId));
 })
 
-export const updateBio = form(bioSchema, async (user) => { 
+export const updateBio = form(bioSchema, async ({ bio }) => { 
   const userId = getUserId();
   await db.update(users).set({
-    bio: user.bio,
+    bio,
     updatedAt: new Date()
   }).where(eq(users.id, userId));
 })
 
-export const updateProfilePic = form(profilePicURLSchema, async (user) => { 
+export const updateProfilePic = form(profilePicURLSchema, async ({ profilePicUrl }) => { 
   const userId = getUserId();
   await db.update(users).set({
-    profilePicUrl: user.profilePicURL,
+    profilePicUrl,
     updatedAt: new Date()
   }).where(eq(users.id, userId));
 })

@@ -12,3 +12,7 @@ export const updateBlogSchema = z.object({
 export const softDeleteBlogSchema = z.object({
   blogId: z.uuid()
 });
+
+export const deleteBlogSchema = z.object({
+  blogId: z.uuid()
+});

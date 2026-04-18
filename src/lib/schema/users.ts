@@ -14,5 +14,5 @@ export const bioSchema = z.object({
 });
 
 export const profilePicURLSchema = z.object({
-  profilePicURL: z.url()
+  profilePicUrl: z.url()
 })

@@ -8,10 +8,10 @@
   
     injectAnalytics({ 
       mode: dev ? 'development' : 'production',
-      debug: false,
+      debug: dev ? false : true,
     });
     injectSpeedInsights({
-      debug: false,
+      debug: dev ? false : true,
     });
 
 	let { children } = $props();
@@ -19,4 +19,18 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
-{@render children()}
+<div class="layout">
+    
+    <header>
+  		<a href="/">Saypi-Blog</a>
+    </header>
+    	
+    <main>
+        {@render children()}    
+    </main>
+    
+    <footer>
+        {new Date().getFullYear()}
+    </footer>
+    
+</div>

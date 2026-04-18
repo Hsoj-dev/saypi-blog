@@ -165,16 +165,16 @@ export const sendFriendRequest = command(z.uuid(), async (targetUserId) => {
   getFriendshipStatus(targetUserId).refresh();
 });
 
-export const updateFriendshipStatus = command(updateFriendshipSchema, async (update) => {
+export const updateFriendshipStatus = command(updateFriendshipSchema, async ({ id, status }) => {
   const { locals: { requestId } } = getRequestEvent();
   const userId = getUserId();
   try {
     const result = await db.update(friends).set({
-      status: update.status,
+      status,
       updatedAt: new Date()
     }).where(
         and(
-          eq(friends.id, update.id),
+          eq(friends.id, id),
           or(
             eq(friends.requesterId, userId),
             eq(friends.addresseeId, userId)

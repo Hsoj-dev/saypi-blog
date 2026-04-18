@@ -1,5 +1,5 @@
 // src/lib/server/db/schema/userProfiles.ts
-import { pgTable, varchar, text, timestamp, uuid, jsonb, pgPolicy } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, timestamp, uuid, pgPolicy } from "drizzle-orm/pg-core";
 import { sql } from 'drizzle-orm';
 import { authenticatedRole } from 'drizzle-orm/supabase';
 import { users } from "./users";
