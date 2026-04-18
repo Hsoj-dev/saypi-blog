@@ -32,6 +32,7 @@ export const users = pgTable("users", {
   uniqueIndex("users_email_idx").on(table.email),
   index("users_campus_idx").on(table.campus),
   index("users_grade_idx").on(table.gradeLevel),
+  index("users_privacy_level_idx").on(table.privacyLevel),
   
   /*
   POLICY: Users can view their own profile.
