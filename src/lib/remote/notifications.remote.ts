@@ -1,38 +1,25 @@
 // src/lib/remote/notifications.remote.ts
-import { query, command, getRequestEvent } from "$app/server";
-import { redirect, error } from '@sveltejs/kit'
+import { query, command, requested, getRequestEvent } from "$app/server";
+import { error } from '@sveltejs/kit'
 import { z } from 'zod';
 import { notifications } from '$lib/server/db/schema';
 import { db } from '$lib/server/db/db';
 import { desc, eq, and, isNull, count } from 'drizzle-orm';
-import { logError, logInfo } from "$lib/helpers/logger";
+import { logError  } from "$lib/helpers/logger";
 
-export const getMyNotifications = query(async () => {
+export const getMyNotifications = query(z.object({
+    filter: z.enum(['all', 'unread']).optional()
+}), async ({ filter }) => {
   const userId = getUserId();
   
   const query = await db.query.notifications.findMany({
-    where: eq(notifications.recipientId, userId),
+    where: (n, { eq, and, isNull }) =>
+      filter === 'unread'
+        ? and(eq(n.recipientId, userId), isNull(n.readAt))
+        : eq(n.recipientId, userId),
     orderBy: desc(notifications.createdAt),
     limit: 20
   });
-  
-  return query
-})
-
-export const getMyUnreadNotifications = query(async () => {
-  const userId = getUserId();
-  
-  const query = await db
-  .select()
-  .from(notifications)
-  .where(
-    and(
-      eq(notifications.recipientId, userId),
-      isNull(notifications.readAt)
-    )
-  )
-  .orderBy(desc(notifications.createdAt))
-  .limit(20);
   
   return query
 })
@@ -53,11 +40,12 @@ export const getMyUnreadNotificationsCount = query(async () => {
   return unreadCount[0]?.count ?? 0;
 })
 
+// NOTE: Only use this on server side,
 export const createNotification = command(z.object({
   recipientId: z.uuid(),
   type: z.enum(["friend_request", "friend_accept", "blog_upvote", "admin_announcement"]),
-  entityId: z.uuid(),
-  entityType: z.enum(["blog", "user", "announcement"])
+  entityId: z.uuid().optional(),
+  entityType: z.enum(["blog", "user", "announcement"]).optional()
 }), async ({ recipientId, type, entityId, entityType }) => {
   const { locals: { requestId } } = getRequestEvent();
   const userId = getUserId();
@@ -72,10 +60,7 @@ export const createNotification = command(z.object({
     }).onConflictDoNothing().returning({ id: notifications.id });
 
     if (result.length === 0) {
-      throw error(, {
-        message: '',
-        code: ''
-      });
+      return;
     }
   } catch (err) {
     logError('NOTIFICATION_CREATION_FAILED', {
@@ -88,18 +73,14 @@ export const createNotification = command(z.object({
       error: err
     });
     
-    throw error( , {
-      message: '',
+    throw error(500, {
+      message: 'Failed to create notification',
       code: 'NOTIFICATION_CREATION_FAILED'
     });
   }
-  
-  // Will this be just noise?
-  logInfo('NOTIFICATION_SENT', { requestId, userId, notificationId: notifications.id })
-  
-  getMyNotifications().refresh();
-  getMyUnreadNotifications().refresh();
-  getMyUnreadNotificationsCount().refresh();
+
+  await requested(getMyNotifications).refreshAll();
+  await requested(getMyUnreadNotificationsCount).refreshAll();
 })
   
 export const markAsRead = command(z.uuid(), async (id) => {
@@ -119,23 +100,27 @@ export const markAsRead = command(z.uuid(), async (id) => {
     ).returning({ id: notifications.id });
     
     if (result.length === 0) {
-      throw error(, {
-        message: '',
-        code: ''
+      throw error(404, {
+        message: 'Notification not found or already read',
+        code: 'NOTIFICATION_NOT_FOUND_OR_READ'
       });
     }
   } catch (err) {
-    logError('', { requestId, userId, error: err });
+    logError('NOTIFICATION_MARK_READ_FAILED', {
+      requestId,
+      userId,
+      notificationId: id,
+      error: err
+    });
     
-    throw error( , {
-      message: '',
-      code: ''
+    throw error(500, {
+      message: 'Failed to mark notification as read',
+      code: 'NOTIFICATION_MARK_READ_FAILED'
     });
   }
   
-  getMyNotifications().refresh();
-  getMyUnreadNotifications().refresh();
-  getMyUnreadNotificationsCount().refresh();
+  await requested(getMyNotifications).refreshAll();
+  await requested(getMyUnreadNotificationsCount).refreshAll();
 })
 
 export const markAllAsRead = command(async () => {
@@ -154,33 +139,38 @@ export const markAllAsRead = command(async () => {
     ).returning({ id: notifications.id });
     
     if (result.length === 0) {
-      throw error(, {
-        message: '',
-        code: ''
-      });
+      return;
     }
   } catch (err) {
-    logError('', { requestId, userId, error: err });
+    logError('NOTIFICATIONS_MARK_ALL_FAILED', {
+      requestId,
+      userId,
+      error: err
+    });
     
-    throw error( , {
-      message: "",
-      code: ""
+    throw error(500, {
+      message: 'Failed to mark all notifications as read',
+      code: 'NOTIFICATIONS_MARK_ALL_FAILED'
     });
   }
   
-  getMyNotifications().refresh();
-  getMyUnreadNotifications().refresh();
-  getMyUnreadNotificationsCount().refresh();
+  await requested(getMyNotifications).refreshAll();
+  await requested(getMyUnreadNotificationsCount).refreshAll();
 })
 
-// deleteNotifications? when should I delete notifications? what notifications should I delete?
+export const deleteAllNotifications = command(async () => {
+  const userId = getUserId();
+  await db.delete(notifications).where(eq(notifications.recipientId, userId));
+});
 
-// TODO: change? too strict?
 function getUserId() {
   const { locals } = getRequestEvent();
 
   if (!locals.user?.id) {
-    throw redirect(303, '/auth/login');
+    throw error(401, {
+      message: "User is unauthorized",
+      code: "UNAUTHORIZED_ACCESS"
+    });
   }
 
   return locals.user.id;
