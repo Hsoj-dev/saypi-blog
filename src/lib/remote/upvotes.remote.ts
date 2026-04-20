@@ -1,34 +1,76 @@
 // src/lib/remote/upvotes.remote.ts
-import { command, query, getRequestEvent } from '$app/server'
-import { redirect, error } from '@sveltejs/kit'
+import { command, getRequestEvent } from '$app/server'
+import { error } from '@sveltejs/kit'
 import { z } from 'zod';
-import { logError, logInfo } from '$lib/helpers/logger';
 import { db } from '$lib/server/db/db';
+import { upvotes, blogs } from '$lib/server/db/schema';
+import { logError } from '$lib/helpers/logger';
+import { eq, and, sql } from 'drizzle-orm';
 
-// in +page.svelte: await upvoteBlog(blog.id).updates(getUpvotes(blog.id))
-export const upvoteBlog = command(z.string(), async (blogId) => {
+export const toggleUpvote = command(z.string(), async (blogId) => {
   const { locals: { requestId } } = getRequestEvent();
-
   const userId = getUserId();
 
-  await db.insert(upvotes).values({
-    blogId,
-    userId
-  });
+  try {
+    return await db.transaction(async (tx) => {
+      // Check if already upvoted
+      const existing = await tx.query.upvotes.findFirst({
+        where: (upvotes, { and, eq }) =>
+          and(
+            eq(upvotes.upvoterId, userId),
+            eq(upvotes.blogId, blogId)
+          )
+      });
 
-  getUpvotes(blogId).refresh();
+      if (existing) {
+        await tx.delete(upvotes).where(
+          and(
+            eq(upvotes.upvoterId, userId),
+            eq(upvotes.blogId, blogId)
+          )
+        );
+
+        await tx.update(blogs)
+          .set({ upvotesCount: sql`upvotes_count - 1` })
+          .where(eq(blogs.id, blogId));
+
+        return { upvoted: false };
+      } else {
+        await tx.insert(upvotes).values({
+          upvoterId: userId,
+          blogId,
+        });
+
+        await tx.update(blogs)
+          .set({ upvotesCount: sql`upvotes_count + 1` })
+          .where(eq(blogs.id, blogId));
+
+        return { upvoted: true };
+      }
+    });
+  } catch (err) {
+    // Handle race condition duplicate insert edge case
+    // if (err?.code === '23505') {
+    //   return { upvoted: true }; // already exists, treat as success
+    // }
+
+    logError("TOGGLE_UPVOTE_FAILED", { requestId, userId, blogId, error: err });
+
+    throw error(500, {
+      message: "Failed to toggle upvote",
+      code: "TOGGLE_UPVOTE_FAILED",
+    });
+  }
 });
 
-export const revokeUpvote = command(async () => {
-  
-})
-
-// TODO: Change redirect, too aggressive??
 function getUserId() {
   const { locals } = getRequestEvent();
 
   if (!locals.user?.id) {
-    throw redirect(303, '/auth/login');
+    throw error(401, {
+      message: "User is unauthorized",
+      code: "UNAUTHORIZED_ACCESS"
+    });
   }
 
   return locals.user.id;
