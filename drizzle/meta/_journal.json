@@ -50,6 +50,20 @@
       "when": 1776508112442,
       "tag": "0006_elite_gamma_corps",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776664250162,
+      "tag": "0007_motionless_vampiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776664414075,
+      "tag": "0008_closed_mimic",
+      "breakpoints": true
     }
   ]
 }

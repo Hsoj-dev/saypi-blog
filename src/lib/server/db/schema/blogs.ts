@@ -1,5 +1,5 @@
 // src/lib/server/db/schema/blogs.ts
-import { pgTable, uuid, timestamp, uniqueIndex, index, varchar, text, boolean, pgPolicy } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, timestamp, uniqueIndex, index, varchar, text, pgPolicy, integer } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { authenticatedRole } from 'drizzle-orm/supabase';
 import { users } from './users';
@@ -21,6 +21,8 @@ export const blogs = pgTable("blogs", {
 
   publishedAt: timestamp("published_at"),
   isDiscoverable: blogDiscoverableEnum("is_discoverable").default("private").notNull(),
+  
+  upvotesCount: integer("upvotes_count").default(0).notNull(),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
