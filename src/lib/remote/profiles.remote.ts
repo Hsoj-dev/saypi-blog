@@ -9,20 +9,80 @@ import { basicInfoSchema, studentInfoSchema, personalInfoSchema, statusUpdateSch
 import { eq } from 'drizzle-orm';
 import { logError } from '$lib/helpers/logger';
 
-export const getUserProfile = query(z.uuid(), async (userId) => {
+export const getMyProfile = query(async () => {
+  const userId = getUserId();
   
-  const userProfile = await db.query.userProfiles.findFirst({
+  const myProfile = await db.query.userProfiles.findFirst({
     where: (userProfiles, { eq }) => eq(userProfiles.userId, userId)
   });
   
-  if (!userProfile) {
+  if (!myProfile) {
     throw error(404, {
       message: 'User not found',
       code: 'DATABASE_QUERY_ERROR'
     });
   }
   
-	return userProfile
+	return myProfile
+})
+
+export const getPublicProfile = query(z.uuid(), async (targetUserId) => {
+  const viewerId = getUserId();
+  
+  if (viewerId === targetUserId) {
+    return await getMyProfile();
+  }
+  
+  const isFriend = await checkIfFriends(viewerId, targetUserId);
+
+  // TODO: refactor these queries into a join next time
+  const privacy = await db.query.userInfoPrivacy.findFirst({
+    where: (userInfoPrivacy, { eq }) => eq(userInfoPrivacy.userId, targetUserId)
+  });
+  
+  const profile = await db.query.userProfiles.findFirst({
+    where: (userProfiles, { eq }) => eq(userProfiles.userId, targetUserId)
+  });
+  
+  if (!profile || !privacy) {
+    throw error(404, {
+      message: 'User not found',
+      code: 'DATABASE_QUERY_ERROR'
+    });
+  }
+  
+  return {
+    statusUpdate: profile.statusUpdate,
+    updatedAt: profile.updatedAt,
+    basic: canView(privacy.basic, isFriend)
+      ? {
+        pronouns: profile.pronouns,
+        homeCity: profile.homeCity,
+        elementarySchool: profile.elementarySchool,
+      }
+      : {},
+
+    student: canView(privacy.student, isFriend)
+      ? { 
+        section: profile.section,
+        coreCourses: profile.coreCourses,
+        electives: profile.electives,
+        house: profile.house,
+      }
+      : {},
+
+    personal: canView(privacy.personal, isFriend)
+      ? { 
+        personality: profile.personality,
+        hobbies: profile.hobbies,
+        interests: profile.interests,
+        likes: profile.likes,
+        dislikes: profile.dislikes,
+        goals: profile.goals,
+        aboutMe: profile.aboutMe,
+      }
+      : {},
+  };
 })
     
 export const updateStatusUpdate = form(statusUpdateSchema, async ({ statusUpdate }) => { 
@@ -43,7 +103,7 @@ export const updateStatusUpdate = form(statusUpdateSchema, async ({ statusUpdate
     });
   }
   
-  getUserProfile(userId).refresh();
+  getMyProfile().refresh();
 })
 
 export const updateBasicInfo = form(basicInfoSchema, async (user) => { 
@@ -66,7 +126,7 @@ export const updateBasicInfo = form(basicInfoSchema, async (user) => {
     });
   }
   
-  getUserProfile(userId).refresh();
+  getMyProfile().refresh();
 })
 
 export const updateStudentInfo = form(studentInfoSchema, async (user) => { 
@@ -90,7 +150,7 @@ export const updateStudentInfo = form(studentInfoSchema, async (user) => {
     });
   }
   
-  getUserProfile(userId).refresh();
+  getMyProfile().refresh();
 })
 
 export const updatePersonalInfo = form(personalInfoSchema, async (user) => {
@@ -117,7 +177,7 @@ export const updatePersonalInfo = form(personalInfoSchema, async (user) => {
     });
   }
   
-  getUserProfile(userId).refresh();
+  getMyProfile().refresh();
 })
 
 function getUserId() {
@@ -128,4 +188,26 @@ function getUserId() {
   }
 
   return locals.user.id;
+}
+
+async function checkIfFriends(userA: string, userB: string) {
+  const result = await db.query.friends.findFirst({
+    where: (f, { and, or, eq }) =>
+      and(
+        eq(f.status, "accepted"),
+        or(
+          and(eq(f.requesterId, userA), eq(f.addresseeId, userB)),
+          and(eq(f.requesterId, userB), eq(f.addresseeId, userA))
+        )
+      ),
+    columns: { id: true },
+  });
+
+  return !!result;
+}
+
+function canView(level: string, isFriend: boolean) {
+  if (level === "public") return true;
+  if (level === "friends-only" && isFriend) return true;
+  return false;
 }
