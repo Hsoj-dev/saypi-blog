@@ -8,6 +8,12 @@
   themes: caramellatte --default, coffee --prefersdark;
 }
 
+@plugin "daisyui/theme" {
+  name: "caramellatte";
+  default: true;
+  --color-primary: var(--color-neutral);
+}
+
 html {
   scroll-behavior: smooth;
 }

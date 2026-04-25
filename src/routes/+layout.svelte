@@ -1,10 +1,13 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
-	
+
 	import { dev } from '$app/environment';
     import { injectAnalytics } from '@vercel/analytics/sveltekit';
     import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
+    
+	import Footer from '$lib/components/layout/Footer.svelte';
+	import Navbar from '$lib/components/layout/Navbar.svelte';
   
     injectAnalytics({ 
       mode: dev ? 'development' : 'production',
@@ -17,12 +20,13 @@
 	let { children } = $props();
 </script>
 
+<!-- TODO: Improve -->
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <div class="layout">
     
     <header>
-  		<a href="/">Saypi-Blog</a>
+        <Navbar />
     </header>
     	
     <main>
@@ -30,7 +34,7 @@
     </main>
     
     <footer>
-        {new Date().getFullYear()}
+        <Footer />
     </footer>
     
 </div>
