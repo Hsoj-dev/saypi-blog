@@ -19,11 +19,10 @@ export const loginSchema = z.object({
   password: z.string().min(1, { error: "Please enter your password" }).trim()
 });
 
-export const resetPasswordEmailSchema = z.object({
-  email: z.email({ error: "Please input your school email" }).endsWith("pshs.edu.ph", { error: "Please use your PSHS email" })
-});
-
 export const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(1, { error: "Please enter your current password"}).trim(),
   newPassword: z.string().min(6, { error: "Password must be at least 6 characters long" }).max(32, { error: "Bruh, can you really memorize that?? - Hsoj ToT" }).trim(),
+  confirmPassword: z.string().min(1, { error: "Please confirm your new password" }).trim()
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"]
 });

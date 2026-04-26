@@ -1,20 +1,30 @@
 // src/lib/server/remote/auth.remote.ts
-import { form, query, command, getRequestEvent } from '$app/server'
+import { form, query, getRequestEvent } from '$app/server'
 import { redirect, error } from '@sveltejs/kit'
-import { signupSchema, loginSchema } from '$lib/schema/auth';
+import { signupSchema, loginSchema, updatePasswordSchema } from '$lib/schema/auth';
 import { AuthApiError } from '@supabase/supabase-js';
 import { createDatabaseUser } from '$lib/helpers/userCreation';
 import { getProfileHandle } from '$lib/utils/profile';
 import { logError, logInfo } from '$lib/helpers/logger';
+import { db } from '$lib/server/db/db';
+import { z } from 'zod';
 
 export const signup = form(signupSchema, async (user) => {
-  const { locals: { supabase, requestId } } = getRequestEvent();
+  const { url, locals: { supabase, requestId } } = getRequestEvent();
 
- 	// ------------------- HELPERS -------------------
+ 	// HELPERS
+  const handle = getProfileHandle(user.firstName, user.lastName);
+  
 	const registerAuthUser = async (email: string, password: string) => {
 		const { data, error: authError } = await supabase.auth.signUp({
 			email,
-			password
+      password,
+      options: {
+        emailRedirectTo: `${url.origin}`, // TODO: add env website name
+        data: {  
+          profileHandle: handle
+        } 
+      }
 		});
 
     if (authError) {
@@ -23,10 +33,8 @@ export const signup = form(signupSchema, async (user) => {
     
 		return data.user;
   };
-	
-	const handle = getProfileHandle(user.firstName, user.lastName);
 
-	// ------------------- AUTH SIGNUP -------------------
+	// AUTH SIGNUP 
 	let authUser;
 
 	try {
@@ -54,14 +62,14 @@ export const signup = form(signupSchema, async (user) => {
     });
   }
 	
-    if (!authUser) {
-      throw error(500, {
-        message: 'Signup failed: missing auth user',
-        code: 'SUPABASE_SIGNUP_FAILED'
-      });
-    }
+  if (!authUser) {
+    throw error(500, {
+      message: 'Signup failed: missing auth user',
+      code: 'AUTH_SIGNUP_FAILED'
+    });
+  }
   
- 	// ------------------- CREATE DATABASE USER -------------------
+ 	// CREATE DATABASE USER
   try {
     await createDatabaseUser(authUser.id, user, handle);
 	} catch (err) {
@@ -72,20 +80,75 @@ export const signup = form(signupSchema, async (user) => {
       code: 'DATABASE_ERROR'
     });
   }
-  
-  // TODO: signup failed attempt
 	
-  // ------------------- REDIRECT ------------------- 
   throw redirect(303, '/auth/verify');
 })
 
-export const logout = command(async () => {
-	const { locals } = getRequestEvent()
+export const login = form(loginSchema, async ({ identifier, password }) => {
+  const { locals: { supabase, requestId } } = getRequestEvent();
+  
+  let email = identifier;
+  const isEmail = z.email().safeParse(identifier).success; // TODO: check if the email is a pisay email
+	
+  if (!isEmail) {
+    const dbUser = await db.query.users.findFirst({
+      columns: { email: true },
+      where: (users, { eq }) => eq(users.username, identifier)
+    });
+    
+    if (!dbUser?.email) {
+      throw error(400, {
+        message: 'Invalid username or password',
+        code: 'INVALID_LOGIN'
+      });
+    }
+    
+    email = dbUser?.email;
+  }
+  
+  const { data, error: err } = await supabase.auth.signInWithPassword({
+      email,
+      password
+  }) 
+  
+  if (err) {
+    logError('LOGIN_ERROR', { requestId, userIdentifier: identifier, error: err }); // TODO: add login attempt number
+    
+    if (err instanceof AuthApiError && err.status === 400) {
+      throw error(400, {
+        message: 'Invalid username or password',
+        code: 'INVALID_LOGIN'
+      });  
+    }
+    
+    throw error(500, {
+      message: 'Server error. Please try again later.',
+      code: 'AUTH_LOGIN_FAILED'
+    });
+  }
+
+  logInfo('USER_LOGIN', {
+    requestId,
+    userId: data.user.id,
+    userIdentifier: identifier
+  });
+  
+  // TODO: add check login number attempts
+  // Options:
+  // Rate limit by IP
+  // Rate limit by username
+  // Temporary account lockout
+  
+	throw redirect(303, '/');
+})
+
+export const logout = form(async () => {
+  const { locals } = getRequestEvent()
 
   const { error: err } = await locals.supabase.auth.signOut();
   
   if (err) {
-    console.error('Error during logout:', err); // TODO: proper logging to appear in sentry dashboard
+    logError('LOGOUT_ERROR', { requestId: locals.requestId, error: err });
     
     throw error(500, {
       message: 'Failed to log out',
@@ -93,16 +156,106 @@ export const logout = command(async () => {
     });
   }
   
+  logInfo('USER_LOGOUT', {
+    requestId: locals.requestId,
+    userId: locals.session?.user.id,
+  });
+  
   locals.session = null;
   locals.user = null;
   
 	throw redirect(303, '/auth/login')
 })
 
-export const getUser = query(async () => {
-	const { locals } = getRequestEvent()
+export const sendResetPasswordEmail = form(z.object({
+  email: z.email().endsWith("pshs.edu.ph", { error: "Please use your PSHS email" })
+}), async ({ email }) => {
+  const { url, locals: { supabase, requestId } } = getRequestEvent()
+  
+  const { data, error: err } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${url.origin}/auth/update-password`
+  });
+  
+  if (data) {
+    logInfo('RESET_PASSWORD_EMAIL_SENT', {
+      requestId,
+      whereTo: email
+    }); 
+  }
+  
+  if (err) {
+    logError('RESET_PASSWORD_EMAIL_ERROR', { requestId, whereTo: email, error: err });
+
+    throw error(500, {
+      message: 'Failed to send reset password email',
+      code: 'RESET_PASSWORD_EMAIL_ERROR'
+    });
+  }
+  
+  return { success: true };
+})
+
+export const updatePassword = form(updatePasswordSchema, async ({ newPassword }) => {
+  const { locals: { supabase, requestId } } = getRequestEvent()
+  
+  const { data: temp } = await supabase.auth.getSession();
+  
+  if (!temp.session) {
+    throw redirect(303, '/auth/login');
+  }
+  
+  const { data, error: updateUserError } = await supabase.auth.updateUser({
+    password: newPassword
+  })
+  
+  if (updateUserError) {
+    logError('PASSWORD_UPDATE_ERROR', { requestId, error: updateUserError });
+
+    throw error(500, {
+      message: 'Failed to update password',
+      code: 'PASSWORD_UPDATE_ERROR'
+    });
+  }
+  
+  if (data) {
+    logInfo('PASSWORD_UPDATE', {
+      requestId,
+      userId: temp.session.user.id
+    }); 
+  }
+  
+  const { error: signOutError } = await supabase.auth.signOut();
+
+  if (signOutError) {
+    logError('LOGOUT_ERROR', { requestId, error: signOutError });
+
+    throw error(500, {
+      message: 'Failed to log out',
+      code: 'AUTH_LOGOUT_ERROR'
+    });
+  }
+  
+  throw redirect(303, '/auth/login')
+})
+
+// TODO: Implement this after v1
+// export const deleteAccount = form("unchecked", async (passwords) => {
+//   const { locals: { supabase } } = getRequestEvent()
+  
+  
+// })
+
+export const requireUser = query(async () => {
+  const { locals } = getRequestEvent()
+	
 	if (!locals.user) {
-		throw redirect(307, '/auth/login')
-	}
+		throw redirect(303, '/auth/login')
+  }
+	
 	return locals.user
+})
+
+export const getUser = query(async () => {
+  const { locals } = getRequestEvent()
+  return locals.user
 })

@@ -30,7 +30,7 @@
     
     <nav>
       <h6 class="footer-title">Support</h6>
-      <a href="docs.saypi.blog" rel="external" class="link link-hover">Docs</a>
+      <a href="https://docs.saypi.blog" target="_blank" rel="noopener noreferrer" class="link link-hover">Docs</a>
       <a href={resolve('/send-feedback')} class="link link-hover">Send Feedback</a>
       <a href={resolve('/report-a-problem')} class="link link-hover">Report a Problem</a>
     </nav>

@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { logout, requireUser } from "$lib/remote/auth.remote";
-	import { getDatabaseUser } from "$lib/remote/users.remote";
-	// import { getUserProfile } from "$lib/remote/profiles.remote";
+	import { logout } from "$lib/remote/auth.remote";
+	// import { getDatabaseUser } from "$lib/remote/users.remote";
+	// // import { getUserProfile } from "$lib/remote/profiles.remote";
 	
-	const authUser = await requireUser();
-	const user = await getDatabaseUser(authUser.id);
-	// const profile = await getUserProfile(authUser.id);
+	// const authUser = await requireUser();
+	// const user = await getDatabaseUser(authUser.id);
+	// // const profile = await getUserProfile(authUser.id);
 </script>
 
-<p>Welcome, {user.username}!</p>
+<!-- <p>Welcome, {user.username}!</p> -->
 <form {...logout}>
     <button type="submit" class="btn">Sign Out</button>
 </form>
