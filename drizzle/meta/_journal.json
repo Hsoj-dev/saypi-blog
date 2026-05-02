@@ -64,6 +64,13 @@
       "when": 1776664414075,
       "tag": "0008_closed_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777719596159,
+      "tag": "0009_supreme_toad",
+      "breakpoints": true
     }
   ]
 }
