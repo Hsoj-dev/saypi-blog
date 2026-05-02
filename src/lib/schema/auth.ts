@@ -1,6 +1,6 @@
 // src/lib/schema/auth.ts
 import { z } from 'zod';
-import { levels, sexes } from '$lib/utils/options';
+import { levels } from '$lib/utils/options';
 import { campuses } from '$lib/utils/campus';
 
 export const signupSchema = z.object({
@@ -9,7 +9,6 @@ export const signupSchema = z.object({
   password: z.string().min(6, { error: "Password must be at least 6 characters long" }).max(32, { error: "Bruh, can you really memorize that?? - Hsoj ToT" }).trim(),
   firstName: z.string().min(1, { error: "First name is required" }).trim(),
   lastName: z.string().min(1, { error: "Last name is required" }).trim(),
-  sex: z.enum(sexes, { error: "Please select a valid sex" }),
   gradeLevel: z.enum(levels, { error: "Please select a valid grade level" }),
   campus: z.enum(campuses, { error: "Invalid campus selection" })
 });

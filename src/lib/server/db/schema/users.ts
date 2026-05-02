@@ -19,7 +19,7 @@ export const users = pgTable("users", {
   gradeLevel: gradeEnum("grade_level").notNull(),
   accountType: accountTypeEnum("account_type").default("student").notNull(),
 
-  sex: sexEnum("sex").notNull(),
+  sex: sexEnum("sex"),
   bio: varchar("bio", { length: 300 }),
   profilePicUrl: text("profile_pic_url"),
 
