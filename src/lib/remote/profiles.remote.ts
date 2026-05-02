@@ -8,22 +8,49 @@ import { error } from '@sveltejs/kit';
 import { basicInfoSchema, studentInfoSchema, personalInfoSchema, statusUpdateSchema } from '$lib/schema/profiles';
 import { eq } from 'drizzle-orm';
 import { logError } from '$lib/helpers/logger';
+import { checkIfFriends } from '$lib/helpers/checkIfFriends';
 
 export const getMyProfile = query(async () => {
   const userId = getUserId();
   
-  const myProfile = await db.query.userProfiles.findFirst({
+  const profile = await db.query.userProfiles.findFirst({
     where: (userProfiles, { eq }) => eq(userProfiles.userId, userId)
   });
   
-  if (!myProfile) {
+  if (!profile) {
     throw error(404, {
       message: 'User not found',
       code: 'DATABASE_QUERY_ERROR'
     });
   }
   
-	return myProfile
+	return {
+    statusUpdate: profile.statusUpdate,
+    updatedAt: profile.updatedAt,
+  
+    basic: {
+      pronouns: profile.pronouns,
+      homeCity: profile.homeCity,
+      elementarySchool: profile.elementarySchool,
+    },
+  
+    student: {
+      section: profile.section,
+      coreCourses: profile.coreCourses,
+      electives: profile.electives,
+      house: profile.house,
+    },
+  
+    personal: {
+      personality: profile.personality,
+      hobbies: profile.hobbies,
+      interests: profile.interests,
+      likes: profile.likes,
+      dislikes: profile.dislikes,
+      goals: profile.goals,
+      aboutMe: profile.aboutMe,
+    }
+  };
 })
 
 export const getPublicProfile = query(z.uuid(), async (targetUserId) => {
@@ -32,8 +59,6 @@ export const getPublicProfile = query(z.uuid(), async (targetUserId) => {
   if (viewerId === targetUserId) {
     return await getMyProfile();
   }
-  
-  const isFriend = await checkIfFriends(viewerId, targetUserId);
 
   // TODO: refactor these queries into a join next time
   const privacy = await db.query.userInfoPrivacy.findFirst({
@@ -50,6 +75,8 @@ export const getPublicProfile = query(z.uuid(), async (targetUserId) => {
       code: 'DATABASE_QUERY_ERROR'
     });
   }
+
+   const isFriend = await checkIfFriends(viewerId, targetUserId);
   
   return {
     statusUpdate: profile.statusUpdate,
@@ -60,7 +87,7 @@ export const getPublicProfile = query(z.uuid(), async (targetUserId) => {
         homeCity: profile.homeCity,
         elementarySchool: profile.elementarySchool,
       }
-      : {},
+      : null,
 
     student: canView(privacy.student, isFriend)
       ? { 
@@ -69,7 +96,7 @@ export const getPublicProfile = query(z.uuid(), async (targetUserId) => {
         electives: profile.electives,
         house: profile.house,
       }
-      : {},
+      : null,
 
     personal: canView(privacy.personal, isFriend)
       ? { 
@@ -81,7 +108,7 @@ export const getPublicProfile = query(z.uuid(), async (targetUserId) => {
         goals: profile.goals,
         aboutMe: profile.aboutMe,
       }
-      : {},
+      : null,
   };
 })
     
@@ -188,22 +215,6 @@ function getUserId() {
   }
 
   return locals.user.id;
-}
-
-async function checkIfFriends(userA: string, userB: string) {
-  const result = await db.query.friends.findFirst({
-    where: (f, { and, or, eq }) =>
-      and(
-        eq(f.status, "accepted"),
-        or(
-          and(eq(f.requesterId, userA), eq(f.addresseeId, userB)),
-          and(eq(f.requesterId, userB), eq(f.addresseeId, userA))
-        )
-      ),
-    columns: { id: true },
-  });
-
-  return !!result;
 }
 
 function canView(level: string, isFriend: boolean) {

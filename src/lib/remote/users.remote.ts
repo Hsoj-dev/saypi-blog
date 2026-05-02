@@ -24,6 +24,22 @@ export const getDatabaseUser = query(z.uuid(), async (userId) => {
 	return user
 })
 
+export const getDatabaseUserByHandle = query(z.string(), async (profileHandle) => {
+  
+  const user = await db.query.users.findFirst({
+    where: (users, { eq }) => eq(users.profileHandle, profileHandle)
+  });
+  
+  if (!user) {
+    throw error(404, {
+      message: 'User not found',
+      code: 'DATABASE_QUERY_ERROR'
+    });
+  }
+  
+	return user
+})
+
 export const getUserUsername = query(z.uuid(), async (userId) => {
   
   const user = await db.query.users.findFirst({
