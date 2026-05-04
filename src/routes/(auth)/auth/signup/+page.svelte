@@ -1,9 +1,7 @@
 <script lang="ts">
-    
     import { signup } from '$lib/remote/auth.remote';
     import { campuses } from '$lib/utils/campus';
     import { levels } from '$lib/utils/options';
-
 </script>
 
 <svelte:head>
@@ -88,7 +86,7 @@
                             class="select select-bordered validator mt-1" 
                             required>
                             <option value="" disabled selected>Grade Level</option>
-                      		{#each levels as level}
+                      		{#each levels as level (level)}
                      			<option value={level}>{level}</option>
                       		{/each}
                         </select>
@@ -105,7 +103,7 @@
                             class="select select-bordered validator w-full mt-1" 
                             required>
                             <option value="" disabled selected>Select Campus</option>
-                      		{#each campuses as campus}
+                      		{#each campuses as campus (campus)}
                      			<option value={campus}>{campus}</option>
                       		{/each}
                        	</select>

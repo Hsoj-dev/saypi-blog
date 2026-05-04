@@ -1,6 +1,5 @@
 <script>
 	import { resolve } from "$app/paths";
-
 </script>
 <footer class="footer sm:footer-horizontal bg-base-300 text-base-content p-10">
     <aside>
@@ -23,7 +22,7 @@
     </aside>
     <nav>
       <h6 class="footer-title">The Platform</h6>
-      <a href={resolve('/about')} class="link link-hover">About</a>
+      <a href={resolve('/about')} class="link link-hover">About Us</a>
       <a href={resolve('/faq')} class="link link-hover">FAQ</a>
       <a href={resolve('/guidelines')} class="link link-hover">Community Guidelines</a>
     </nav>
@@ -31,7 +30,7 @@
     <nav>
       <h6 class="footer-title">Support</h6>
       <a href="https://docs.saypi.blog" target="_blank" rel="noopener noreferrer" class="link link-hover">Docs</a>
-      <a href={resolve('/send-feedback')} class="link link-hover">Send Feedback</a>
+      <a href="https://trypulsekit.com/@saypi-studio" target="_blank"  class="link link-hover">Send Feedback</a>
       <a href={resolve('/report-a-problem')} class="link link-hover">Report a Problem</a>
     </nav>
     
@@ -39,7 +38,6 @@
       <h6 class="footer-title">Legal</h6>
       <a href={resolve('/terms')} class="link link-hover">Terms of Use</a>
       <a href={resolve('/privacy')} class="link link-hover">Privacy Policy</a>
-      <a href={resolve('/cookies')} class="link link-hover">Cookie Policy</a>
     </nav>
 </footer>
 <div class="divider bg-base-300 m-0 p-0"></div>

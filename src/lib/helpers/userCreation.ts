@@ -13,7 +13,6 @@ export const createDatabaseUser = async (userId: string, user: any, handle: stri
           firstName: user.firstName,
           lastName: user.lastName,
           profileHandle: handle,
-          sex: user.sex,
           gradeLevel: Number(user.gradeLevel),
           campus: getCampusCode(user.campus)
       }).onConflictDoNothing().returning({ id: users.id });
