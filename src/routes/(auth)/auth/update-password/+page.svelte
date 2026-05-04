@@ -37,7 +37,14 @@
                 {/each}
 
                 <div class="card-actions">
-                    <button class="btn btn-primary btn-block mt-1">Reset Password</button>
+                    <button class="btn btn-primary btn-block mt-1" disabled={!!action.pending} aria-busy={!!action.pending}>
+                        {#if action.pending}
+                            <span class="loading loading-dots loading-md"></span>
+                            <span class="sr-only">Resetting Password...</span>
+                        {:else}
+                            Reset Password
+                        {/if}
+                    </button>
                 </div>
             </fieldset>
         </form>

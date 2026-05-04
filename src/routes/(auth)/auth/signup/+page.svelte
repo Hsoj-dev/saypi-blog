@@ -115,7 +115,14 @@
                 </div>
                 
                 <div class="card-actions">
-                  <button class="btn btn-primary btn-block mt-2">Create my Saypi Blog -></button>
+                  <button class="btn btn-primary btn-block mt-2" disabled={!!signup.pending} aria-busy={!!signup.pending}>
+                      {#if signup.pending}
+                          <span class="loading loading-dots loading-md"></span>
+                          <span class="sr-only">Creating account...</span>
+                      {:else}
+                        Create My Account
+                      {/if}
+                  </button>
                 </div>
             </fieldset>
         </form>   

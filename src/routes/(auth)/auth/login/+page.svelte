@@ -10,7 +10,7 @@
 <div class="card card-border border-primary bg-base-100 w-sm sm:w-lg shadow-2xl">
     <div class="card-body">
         <h1 class="card-title text-lg sm:text-xl md:text-2xl justify-center">
-            [ Login ]
+            [ Log In ]
         </h1>
 
         <!-- TODO: fine tune responsiveness -->
@@ -43,7 +43,14 @@
                     <a class="link link-hover" href={resolve('/auth/forgot-password')}>Forgot your password?</a>
     
                     <div class="card-actions">
-                        <button class="btn btn-primary btn-block">Login</button>
+                        <button class="btn btn-primary btn-block" disabled={!!login.pending} aria-busy={!!login.pending}>
+                            {#if login.pending}
+                                <span class="loading loading-dots loading-md"></span>
+                                <span class="sr-only">Logging In...</span>
+                            {:else}
+                                Login
+                            {/if}
+                        </button>
                     </div>
     
                     <p class="flex justify-center gap-1">
