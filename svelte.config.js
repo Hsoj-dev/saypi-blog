@@ -36,7 +36,7 @@ const config = {
         'script-src': ['self', 'https://vercel.live'],
         'script-src-elem': ['self', 'https://va.vercel-scripts.com'],
         'img-src': ['self', 'data:', 'https:'],
-        'report-uri': ['https://o4511150140424192.ingest.us.sentry.io/api/4511150146322432/security/?sentry_key=36f25b1bb405a8b4e7de1e3d3b893cde']
+        'report-uri': ['https://o4511150140424192.ingest.us.sentry.io/api/4511330588295168/security/?sentry_key=fe908bdbe011debe50395a3f6712f36c']
       }
     },
     experimental: {
