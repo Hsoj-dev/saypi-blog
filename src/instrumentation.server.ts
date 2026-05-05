@@ -8,11 +8,9 @@ if (import.meta.env.PROD) {
     tracesSampleRate: 1.0,
     
     integrations: [
-      // send console.log, console.warn, and console.error calls as logs to Sentry
       Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
     ],
-  
-    // Enable logs to be sent to Sentry
+
     enableLogs: true,
   
     // uncomment the line below to enable Spotlight (https://spotlightjs.com)

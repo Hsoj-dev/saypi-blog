@@ -3,10 +3,6 @@
 <script lang='ts'>
 	import Main from "$lib/components/layout/public/Main.svelte";
 
-	import * as Sentry from "@sentry/sveltekit";
-
-	Sentry.logger.info("Unlocking the log dashboard!");
-
 	let { data } = $props();
 </script>
 

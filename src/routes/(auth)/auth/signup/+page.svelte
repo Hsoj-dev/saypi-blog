@@ -53,11 +53,11 @@
 
                 <div class="flex flex-row gap-2">
                     <div class="w-1/2">
-                        <label class="label" for="firstName">First Name</label>
+                        <label class="label" for="firstName">First Name (or Second Name)</label>
                         <input
                             {...signup.fields.firstName.as('text')}
                             class="input validator w-full mt-1"
-                            placeholder="First Name"
+                            placeholder="First / Second Name"
                             required/>
         
                         {#each signup.fields.firstName.issues() as issue (issue.message)}
