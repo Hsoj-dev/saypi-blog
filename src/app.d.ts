@@ -20,8 +20,8 @@ declare global {
     }
     interface PageData {
       session: Session | null
-      user: User | null
-      theme: "coffee" | "caramellatte"
+      // user: User | null
+      // theme: "coffee" | "caramellatte"
     }
     // interface PageState {}
     // interface Platform {}
