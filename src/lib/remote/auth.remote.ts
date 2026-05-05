@@ -1,5 +1,5 @@
 // src/lib/server/remote/auth.remote.ts
-import { form, query, getRequestEvent } from '$app/server'
+import { form, query, command, getRequestEvent } from '$app/server'
 import { redirect, error } from '@sveltejs/kit'
 import { signupSchema, loginSchema, updatePasswordSchema } from '$lib/schema/auth';
 import { AuthApiError } from '@supabase/supabase-js';
@@ -81,7 +81,7 @@ export const signup = form(signupSchema, async (user) => {
     });
   }
 	
-  throw redirect(303, '/auth/verify');
+  throw redirect(303, `/auth/verify?email=${encodeURIComponent(user.email)}`);
 })
 
 export const login = form(loginSchema, async ({ identifier, password }) => {
@@ -244,6 +244,39 @@ export const updatePassword = form(updatePasswordSchema, async ({ newPassword })
   
   
 // })
+
+export const resendVerificationEmail = command(async () => {
+  const { url, locals: { supabase, requestId } } = getRequestEvent()
+  
+  // Try to get the email from the current session first
+  const { data: { user } } = await supabase.auth.getUser();
+  let email = user?.email;
+
+  // Fallback to URL only if session doesn't exist
+  if (!email) email = url.searchParams.get('email') ?? undefined;
+
+  if (!email) throw redirect(303, '/');
+  
+  const { data, error: err } = await supabase.auth.resend({ type: 'signup', email })
+  
+  if (err) {
+    logError('RESEND_VERIFICATION_EMAIL_FAILED', { requestId, whereTo: email, error: err });
+
+    throw error(500, {
+      message: 'Failed to resend verification email',
+      code: 'RESEND_VERIFICATION_EMAIL_FAILED'
+    });
+  }
+
+  if (data) {
+    logInfo('RESEND_VERIFICATION_EMAIL', {
+      requestId,
+      whereTo: email
+    }); 
+  }
+  
+  return { success: true };
+})
 
 export const requireUser = query(async () => {
   const { locals } = getRequestEvent()
