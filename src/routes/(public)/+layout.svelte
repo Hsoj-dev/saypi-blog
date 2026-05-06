@@ -11,9 +11,13 @@
         <Navbar />
     </header>
     	
-    <main>
-        {@render children()}    
-    </main>
+    <div class="hero bg-base-200 min-h-[calc(100vh-4rem)] grid-bg">
+        <div class="hero-content text-center">
+            <main>
+                {@render children()}    
+            </main>
+        </div>
+    </div>
     
     <footer>
         <Footer />
