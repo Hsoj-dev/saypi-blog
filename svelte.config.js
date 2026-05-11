@@ -24,8 +24,8 @@ const config = {
       mode: 'auto',
       directives: {
         'default-src': ['self'],
-        'script-src': ['self', 'https://vercel.live', 'https://va.vercel-scripts.com'],
-        'script-src-elem': ['self', 'https://va.vercel-scripts.com'],
+        'script-src': ['self', 'blob:', 'https://cdn.jsdelivr.net', 'https://vercel.live', 'https://va.vercel-scripts.com'],
+        'script-src-elem': ['self', 'https://cdn.jsdelivr.net', 'https://va.vercel-scripts.com'],
         'style-src': ['self', 'unsafe-inline'],
         'img-src': ['self', 'data:', 'https:'],
         'connect-src': ['self', 'https://*.supabase.co', 'https://*.sentry.io'],
