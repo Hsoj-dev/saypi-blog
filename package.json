@@ -45,6 +45,7 @@
 		"vite": "^7.3.1"
 	},
 	"dependencies": {
+		"@cloudinary/url-gen": "^1.22.0",
 		"@friendofsvelte/tipex": "^0.1.1",
 		"@sentry/sveltekit": "^10.51.0",
 		"@sentry/vite-plugin": "^5.2.0",
@@ -52,6 +53,8 @@
 		"@supabase/supabase-js": "^2.100.1",
 		"@vercel/analytics": "^2.0.1",
 		"@vercel/speed-insights": "^2.0.0",
+		"browser-image-compression": "^2.0.2",
+		"cloudinary": "^2.10.0",
 		"daisyui": "^5.5.19",
 		"zod": "^4.3.6"
 	}
