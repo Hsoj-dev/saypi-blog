@@ -256,6 +256,82 @@ export const updateBio = form(z.object({
   }
 })
 
+// TODO: test this
+export const uploadProfilePic = form(z.object({
+  file: z.file()
+    .max(2_000_000, { error: 'Image must be under 2MB' })
+    .mime(["image/jpeg", "image/jpg", "image/png", "image/webp"],
+      { error: 'Only image files are allowed' }
+    )
+}), async ({ file }) => {
+  const { locals: { requestId } } = getRequestEvent();
+  const userId = getUserId();
+  
+  if (!file) {
+    throw error(400, {
+      message: 'No file uploaded',
+      code: 'NO_FILE'
+    });
+  }
+
+  // Validate image
+  if (!file.type.startsWith('image/')) {
+    throw error(400, {
+      message: 'Only image files are allowed',
+      code: 'INVALID_FILE_TYPE'
+    });
+  }
+
+  // Max 2MB
+  if (file.size > 2_000_000) {
+    throw error(400, {
+      message: 'Image must be under 2MB',
+      code: 'FILE_TOO_LARGE'
+    });
+  }
+
+  const filePath = createImagePath(
+    userId,
+    file,
+    'profile'
+  );
+  
+  await uploadFile(
+    userId,
+    'avatars',
+    file,
+    filePath
+  );
+
+  try {
+    await db.update(users)
+      .set({
+        profilePicPath: filePath,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  } catch (err) {
+    // Cleanup uploaded file
+    await deleteFile('avatars', [filePath]);
+    
+    logError('USER_PROFILE_PIC_PATH_UPDATE_FAILED', {
+      requestId,
+      userId,
+      error: err
+    });
+
+    throw error(500, {
+      message: 'Failed to update user profile picture path',
+      code: 'USER_PROFILE_PIC_PATH_UPDATE_FAILED'
+    });
+  }
+
+  return {
+    success: true,
+    profilePicPath: filePath
+  };
+})
+
 function getUserId() {
   const { locals } = getRequestEvent();
 
