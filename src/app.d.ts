@@ -19,8 +19,8 @@ declare global {
       requestId: string;
     }
     interface PageData {
-      session: Session | null
-      // user: User | null
+      session?: Session | null
+      user?: User | null
       // theme: "coffee" | "caramellatte"
     }
     // interface PageState {}
