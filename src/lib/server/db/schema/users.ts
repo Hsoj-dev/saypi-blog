@@ -21,7 +21,7 @@ export const users = pgTable("users", {
 
   sex: sexEnum("sex"),
   bio: varchar("bio", { length: 300 }),
-  profilePicUrl: text("profile_pic_url"),
+  profilePicPath: text("profile_pic_path"),
 
   privacyLevel: privacyEnum("privacy_level").default("public").notNull(),
 
