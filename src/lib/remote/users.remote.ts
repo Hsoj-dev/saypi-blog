@@ -5,8 +5,10 @@ import { db } from '$lib/server/db/db';
 import { z } from 'zod';
 import { users } from '$lib/server/db/schema';
 import { error } from '@sveltejs/kit';
-import { bioSchema, privacyLevelSchema, profilePicURLSchema, usernameSchema } from '$lib/schema/users';
+import { usernameSchema } from '$lib/schema/users';
 import { eq } from 'drizzle-orm';
+import { logError } from '$lib/helpers/logger';
+import { createImagePath, deleteFile, uploadFile } from '$lib/server/storage';
 
 export const getDatabaseUser = query(z.uuid(), async (userId) => {
   
@@ -126,35 +128,132 @@ export const getUserGradeLevel = query(z.uuid(), async (userId) => {
 })
 
 export const updateUsername = form(usernameSchema, async ({ username }) => { 
+  const { locals: { requestId } } = getRequestEvent();
   const userId = getUserId();
-  await db.update(users).set({
-    username,
-    updatedAt: new Date()
-  }).where(eq(users.id, userId));
+
+  try {
+    await db.update(users).set({
+      username,
+      updatedAt: new Date()
+    }).where(eq(users.id, userId));
+  } catch (err) {
+    logError('USERNAME_UPDATE_FAILED', { requestId, userId, error: err }); 
+    
+    throw error(500, {
+      message: 'Failed to update username',
+      code: 'USERNAME_UPDATE_FAILED'
+    });
+  }
 })
 
-export const updatePrivacyLevel = form(privacyLevelSchema, async ({ privacyLevel }) => { 
+// TODO: fix validation
+export const updateFirstLastName = form(z.object({
+  firstName: z.string(),
+  lastName: z.string()
+}), async ({ firstName, lastName }) => { 
+  const { locals: { requestId } } = getRequestEvent();
   const userId = getUserId();
-  await db.update(users).set({
-    privacyLevel,
-    updatedAt: new Date()
-  }).where(eq(users.id, userId));
+
+  try {
+    await db.update(users).set({
+      firstName,
+      lastName,
+      updatedAt: new Date()
+    }).where(eq(users.id, userId));
+  } catch (err) {
+    logError('USER_FIRST_LAST_NAME_UPDATE_FAILED', { requestId, userId, error: err }); 
+    
+    throw error(500, {
+      message: 'Failed to update user first and last name',
+      code: 'USER_FIRST_LAST_NAME_UPDATE_FAILED'
+    });
+  }
 })
 
-export const updateBio = form(bioSchema, async ({ bio }) => { 
+// TODO: fix validation
+export const updateProfileHandle = form(z.object({
+  newProfileHandle: z.string()
+}), async ({ newProfileHandle }) => { 
+  const { locals: { requestId } } = getRequestEvent();
   const userId = getUserId();
-  await db.update(users).set({
-    bio,
-    updatedAt: new Date()
-  }).where(eq(users.id, userId));
+
+  try {
+    await db.update(users).set({
+      profileHandle: `@${newProfileHandle}`,
+      updatedAt: new Date()
+    }).where(eq(users.id, userId));
+  } catch (err) {
+    logError('USER_HANDLE_UPDATE_FAILED', { requestId, userId, error: err }); 
+    
+    throw error(500, {
+      message: 'Failed to update user profile handle',
+      code: 'USER_HANDLE_UPDATE_FAILED'
+    });
+  }
 })
 
-export const updateProfilePic = form(profilePicURLSchema, async ({ profilePicUrl }) => { 
+// TODO: fix validation
+export const updateSex = form(z.object({
+  sex: z.enum(['male', 'female'])
+}), async ({ sex }) => { 
+  const { locals: { requestId } } = getRequestEvent();
   const userId = getUserId();
-  await db.update(users).set({
-    profilePicUrl,
-    updatedAt: new Date()
-  }).where(eq(users.id, userId));
+
+  try {
+    await db.update(users).set({
+      sex,
+      updatedAt: new Date()
+    }).where(eq(users.id, userId));
+  } catch (err) {
+    logError('USER_SEX_UPDATE_FAILED', { requestId, userId, error: err }); 
+    
+    throw error(500, {
+      message: 'Failed to update user sex',
+      code: 'USER_SEX_UPDATE_FAILED'
+    });
+  }
+})
+
+export const updatePrivacyLevel = form(z.object({
+  privacyLevel: z.enum(["public", "private", "friends-only"], { error: "Invalid privacy level" })
+}), async ({ privacyLevel }) => { 
+  const { locals: { requestId } } = getRequestEvent();
+  const userId = getUserId();
+
+  try {
+    await db.update(users).set({
+      privacyLevel,
+      updatedAt: new Date()
+    }).where(eq(users.id, userId));
+  } catch (err) {
+    logError('USER_PRIVACY_LEVEL_UPDATE_FAILED', { requestId, userId, error: err }); 
+    
+    throw error(500, {
+      message: 'Failed to update user privacy level',
+      code: 'USER_PRIVACY_LEVEL_UPDATE_FAILED'
+    });
+  }
+})
+
+export const updateBio = form(z.object({
+  bio: z.string().max(300, { error: "You have reached maximum characters amount" })
+}), async ({ bio }) => { 
+  const { locals: { requestId } } = getRequestEvent();
+  const userId = getUserId();
+
+  try {
+    await db.update(users).set({
+      bio,
+      updatedAt: new Date()
+    }).where(eq(users.id, userId));
+  } catch (err) {
+    logError('USER_BIO_UPDATE_FAILED', { requestId, userId, error: err }); 
+    
+    throw error(500, {
+      message: 'Failed to update user bio',
+      code: 'USER_BIO_UPDATE_FAILED'
+    });
+  }
 })
 
 function getUserId() {
