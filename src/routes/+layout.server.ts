@@ -1,11 +1,8 @@
 // src\routes\+layout.server.ts
-import { getRequestEvent } from '$app/server';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async () => {
-  const { locals: { session } } = getRequestEvent();
-  
+export const load: LayoutServerLoad = async ({ cookies }) => {
   return {
-    session
+    cookies: cookies.getAll(),
   };
 };

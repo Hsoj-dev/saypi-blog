@@ -10,7 +10,7 @@
   <title>Saypi-Blog | The Social Blogging Platform made for Pisay Scholars.</title>
 </svelte:head>
 
-{#if data.session}
+{#if data.claims}
     <p>Logged In</p>
 {:else}
     <Main />
