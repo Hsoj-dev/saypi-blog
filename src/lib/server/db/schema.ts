@@ -1,4 +1,4 @@
-// src/lib/server/db/schema.ts
+// src\lib\server\db\schema.ts
 export * from "./schema/users";
 export * from "./schema/userProfiles";
 export * from "./schema/userInfoPrivacy";
