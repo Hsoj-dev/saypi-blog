@@ -2,6 +2,8 @@
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$env/static/public';
 import { createServerClient } from '@supabase/ssr';
 import * as Sentry from '@sentry/sveltekit';
+import { v2 as cloudinary } from 'cloudinary';
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } from '$env/static/private';
 import { sequence } from '@sveltejs/kit/hooks';
 import { type Handle, isRedirect, redirect } from '@sveltejs/kit';
 
@@ -208,6 +210,19 @@ const withErrorLogging: Handle = async ({ event, resolve }) => {
 // RATE LIMITING HOOK
 // TODO: setup rate limiting hook
 
+// CLOUDINARY HOOK
+cloudinary.config({
+  cloud_name: CLOUDINARY_CLOUD_NAME,
+  api_key: CLOUDINARY_API_KEY,
+  api_secret: CLOUDINARY_API_SECRET,
+  secure: true
+});
+
+export const withCloudinary: Handle = async ({ event, resolve }) => {
+  event.locals.cloudinary = cloudinary;
+  return resolve(event);
+};
+
 export const handle: Handle = sequence(
   Sentry.sentryHandle(), // capture all errors
   withRequestId,         // assign request id
@@ -215,5 +230,6 @@ export const handle: Handle = sequence(
   // withRateLimiting,      // block abusive traffic
   withSecurityHeaders,   // apply headers
   withSupabase,          // create supabase client
+  withCloudinary,        // create cloudinary client
   withAuthGuard          // protect routes
 )

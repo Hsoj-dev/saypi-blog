@@ -1,6 +1,7 @@
 // app.d.ts
 import type { SupabaseClient, Session, User } from '@supabase/supabase-js'
 import type { Database } from './database.types.ts' // import generated types
+import type { v2 as cloudinary } from 'cloudinary';
 
 declare global {
   namespace App {
@@ -9,19 +10,20 @@ declare global {
       code?: string
     }
     interface Locals {
-      supabase: SupabaseClient<Database>
+      supabase: SupabaseClient<Database>;
       getValidatedSession: () => Promise<{
         session: Session | null;
         user: User | null;
-      }>
-      session: Session | null
-      user: User | null
+      }>;
+      session: Session | null;
+      user: User | null;
       requestId: string;
+      cloudinary: typeof cloudinary;
     }
     interface PageData {
-      session?: Session | null
-      user?: User | null
-      // theme: "coffee" | "caramellatte"
+      session?: Session | null;
+      user?: User | null;
+      // theme: "coffee" | "caramellatte";
     }
     // interface PageState {}
     // interface Platform {}
