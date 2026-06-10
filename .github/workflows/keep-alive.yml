@@ -1,0 +1,17 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every 4 days
+    - cron: '0 0 */4 * *'
+  workflow_dispatch: # Allows you to trigger it manually from GitHub
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send API Request to Supabase
+        run: |
+          curl -i -X GET "${{ secrets.PUBLIC_SUPABASE_URL }}/rest/v1/" \
+          -H "apikey: ${{ secrets.PUBLIC_SUPABASE_PUBLISHABLE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.PUBLIC_SUPABASE_PUBLISHABLE_KEY }}"
