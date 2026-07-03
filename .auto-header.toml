@@ -1,0 +1,16 @@
+[author]
+name = "Josh T. Satinitigan"
+
+[project]
+name = "Saypi-Blog"
+copyright_holder = "Saypi Studio"
+
+[header]
+template = """
+Part of the Saypi-Blog project.
+
+Copyright (c) {year} {copyright_holder}
+Licensed under the Saypi-Blog Source Available License 1.0 (SSAL-1.0).
+
+See the LICENSE file in the project root for license information.
+"""
