@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Send API Request to Supabase
         run: |
-          curl -i -X GET "${{ secrets.PUBLIC_SUPABASE_URL }}/rest/v1/" \
+          curl -if -X GET "${{ secrets.PUBLIC_SUPABASE_URL }}/rest/v1/keepalive?select=id&limit=1" \
           -H "apikey: ${{ secrets.PUBLIC_SUPABASE_PUBLISHABLE_KEY }}" \
           -H "Authorization: Bearer ${{ secrets.PUBLIC_SUPABASE_PUBLISHABLE_KEY }}"
