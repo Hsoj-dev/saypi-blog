@@ -207,9 +207,6 @@ const withErrorLogging: Handle = async ({ event, resolve }) => {
   }
 }
 
-// RATE LIMITING HOOK
-// TODO: setup rate limiting hook
-
 // CLOUDINARY HOOK
 cloudinary.config({
   cloud_name: CLOUDINARY_CLOUD_NAME,
@@ -227,7 +224,6 @@ export const handle: Handle = sequence(
   Sentry.sentryHandle(), // capture all errors
   withRequestId,         // assign request id
   withErrorLogging,      // structured logs
-  // withRateLimiting,      // block abusive traffic
   withSecurityHeaders,   // apply headers
   withSupabase,          // create supabase client
   withCloudinary,        // create cloudinary client
