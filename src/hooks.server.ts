@@ -1,4 +1,12 @@
-// src/hooks.server.ts
+/*
+ * Part of the Saypi-Blog project.
+ *
+ * Copyright (c) 2026 Saypi Studio
+ * Licensed under the Saypi-Blog Source Available License 1.0 (SSAL-1.0).
+ *
+ * See the LICENSE file in the project root for license information.
+ */
+
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$env/static/public';
 import { createServerClient } from '@supabase/ssr';
 import * as Sentry from '@sentry/sveltekit';
@@ -181,11 +189,11 @@ const withErrorLogging: Handle = async ({ event, resolve }) => {
   try {
     return await resolve(event)
   } catch (error) {
-    Sentry.captureException(error)
-    
     if (isRedirect(error)) {
       throw error
     }
+    
+    Sentry.captureException(error)
     
     const err = error instanceof Error
       ? error
@@ -195,7 +203,6 @@ const withErrorLogging: Handle = async ({ event, resolve }) => {
       timestamp: new Date().toISOString(),
       message: err.message,
       userId: event.locals.user?.id,
-      sessionId: event.locals.session?.access_token,
       ip: event.getClientAddress?.() ?? "unknown",
       stack: err.stack,
       url: event.url.pathname,
