@@ -317,6 +317,18 @@ export const resendVerificationEmail = command(async () => {
   if (!email) email = url.searchParams.get('email') ?? undefined;
 
   if (!email) throw redirect(303, '/');
+
+  if (!email.endsWith('pshs.edu.ph')) throw redirect(303, '/');
+
+  // RATE LIMITING
+  const allowed = await checkRateLimit(`resend-verification:${email.toLowerCase()}`, 3, 300);
+
+  if (!allowed) {
+    throw error(429, {
+      message: 'Too many resend attempts. Please wait a few minutes and try again.',
+      code: 'RATE_LIMITED'
+    });
+  }
   
   const { data, error: err } = await supabase.auth.resend({ type: 'signup', email })
   
