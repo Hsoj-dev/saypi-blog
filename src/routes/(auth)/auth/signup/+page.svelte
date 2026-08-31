@@ -1,7 +1,20 @@
+<!--
+  Part of the Saypi-Blog project.
+
+  Copyright (c) 2026 Saypi Studio
+  Licensed under the Saypi-Blog Source Available License 1.0 (SSAL-1.0).
+
+  See the LICENSE file in the project root for license information.
+-->
+
 <script lang="ts">
     import { signup } from '$lib/remote/auth.remote';
+    import { signupSchema } from '$lib/schema/auth';
     import { campuses } from '$lib/utils/campus';
     import { levels } from '$lib/utils/options';
+    import { toast } from 'svoast';
+
+    let showPassword = $state(false);
 </script>
 
 <svelte:head>
@@ -15,7 +28,22 @@
         </h1>
 
         <!-- TODO: fine tune responsiveness -->
-        <form {...signup}> 
+        <form {...signup.preflight(signupSchema).enhance(async ({ submit }) => {
+          try {
+              const ok = await submit();
+              if (!ok) return; // if success, server redirects to /auth/verify
+          } catch (err: any) {
+              const status = err?.status;
+              const message = err?.body?.message ?? 'Something went wrong. Please try again.';
+      
+              if (status === 429) {
+                  toast.warning(message);
+              } else {
+                  // 400 INVALID_SIGNUP_DETAILS, 500 AUTH_SIGNUP_FAILED, 500 DATABASE_ERROR
+                  toast.error(message);
+              }
+          }
+        })}> 
             <fieldset class="fieldset">
                 <label class="label" for="email">Email</label>
                 <input {...signup.fields.email.as('email')} 
@@ -39,25 +67,38 @@
                     <p class="text-error italic">{issue.message}</p>
                 {/each}
                 
-                <!-- TODO: add see password toggle -->
-                <label class="label" for="password">Password</label>  
-                <input {...signup.fields.password.as('password')} 
-                    class="input validator w-full" 
-                    placeholder="Password" 
-                    required 
-                    autocomplete="new-password"/>
+                <label class="label" for="_password">Password</label>  
+                <div class="relative">
+                    <input {...signup.fields._password.as('password')}
+                        type={showPassword ? 'text' : 'password'}
+                        class="input validator w-full pr-10"
+                        placeholder="Password"
+                        required
+                        autocomplete="new-password"/>
                 
-                {#each signup.fields.password.issues() as issue (issue.message)}
+                    <button type="button"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content"
+                        onclick={() => (showPassword = !showPassword)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                        {#if showPassword}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                        {:else}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        {/if}
+                    </button>
+                </div>
+                
+                {#each signup.fields._password.issues() as issue (issue.message)}
                     <p class="text-error italic">{issue.message}</p>
                 {/each}
 
                 <div class="flex flex-row gap-2">
                     <div class="w-1/2">
-                        <label class="label" for="firstName">First Name (or Second Name)</label>
+                        <label class="label" for="firstName">Given Name</label>
                         <input
                             {...signup.fields.firstName.as('text')}
                             class="input validator w-full mt-1"
-                            placeholder="First / Second Name"
+                            placeholder="Given Name"
                             required/>
         
                         {#each signup.fields.firstName.issues() as issue (issue.message)}

@@ -1,26 +1,56 @@
-// src/lib/server/remote/auth.remote.ts
+/*
+ * Part of the Saypi-Blog project.
+ *
+ * Copyright (c) 2026 Saypi Studio
+ * Licensed under the Saypi-Blog Source Available License 1.0 (SSAL-1.0).
+ *
+ * See the LICENSE file in the project root for license information.
+ */
+
 import { form, query, command, getRequestEvent } from '$app/server'
-import { redirect, error } from '@sveltejs/kit'
+import { redirect, error, invalid } from '@sveltejs/kit'
+import { supabaseAdmin } from '$lib/server/supabaseAdmin';
 import { signupSchema, loginSchema, updatePasswordSchema } from '$lib/schema/auth';
 import { AuthApiError } from '@supabase/supabase-js';
-import { createDatabaseUser } from '$lib/helpers/userCreation';
+import { createDatabaseUser, getAvailableHandle } from '$lib/helpers/userCreation';
 import { getProfileHandle } from '$lib/utils/profile';
 import { logError, logInfo } from '$lib/helpers/logger';
+import { checkRateLimit } from '$lib/server/services/rateLimit';
 import { db } from '$lib/server/db/db';
 import { z } from 'zod';
 
-export const signup = form(signupSchema, async (user) => {
+export const signup = form(signupSchema, async (user, issue) => {
   const { url, locals: { supabase, requestId } } = getRequestEvent();
 
+  // RATE LIMITING
+  const allowed = await checkRateLimit(`signup:${user.email.toLowerCase()}`, 3, 300);
+
+  if (!allowed) {
+    throw error(429, {
+      message: 'Too many signup attempts with this email. Please wait a few minutes and try again.',
+      code: 'RATE_LIMITED'
+    });
+  }
+
+  // USERNAME LOOKUP
+  const existing = await db.query.users.findFirst({
+    columns: { id: true },
+    where: (users, { eq }) => eq(users.username, user.username)
+  });
+
+  if (existing) {
+    invalid(issue.username('This username is already taken'));
+  }
+  
  	// HELPERS
-  const handle = getProfileHandle(user.firstName, user.lastName);
+  const handle = await getAvailableHandle(getProfileHandle(user.firstName, user.lastName));
   
 	const registerAuthUser = async (email: string, password: string) => {
 		const { data, error: authError } = await supabase.auth.signUp({
 			email,
       password,
       options: {
-        emailRedirectTo: `${url.origin}`, // TODO: add env website name
+        emailRedirectTo: `${url.origin}`,
         data: {  
           profileHandle: handle
         } 
@@ -38,7 +68,7 @@ export const signup = form(signupSchema, async (user) => {
 	let authUser;
 
 	try {
-    authUser = await registerAuthUser(user.email, user.password);
+    authUser = await registerAuthUser(user.email, user._password);
     
     logInfo('USER_REGISTERED', {
       requestId: requestId,
@@ -74,7 +104,22 @@ export const signup = form(signupSchema, async (user) => {
     await createDatabaseUser(authUser.id, user, handle);
 	} catch (err) {
     logError('DATABASE_ERROR', { requestId, userId: authUser.id, error: err });
-		
+
+    // Undo the auth user we just created, so this email isn't stuck forever
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(authUser.id);
+    } catch (cleanupErr) {
+      logError('SIGNUP_CLEANUP_FAILED', { requestId, userId: authUser.id, error: cleanupErr });
+    }
+
+    if (authUser && authUser.identities?.length === 0) {
+      logInfo('SIGNUP_ATTEMPT_EXISTING_EMAIL', { requestId, email: authUser.email });
+      throw error(400, {
+        message: 'An account with this email already exists. Try logging in instead.',
+        code: 'EMAIL_ALREADY_REGISTERED'
+      });
+    }
+    
     throw error(500, {
       message: 'Failed to create user profile',
       code: 'DATABASE_ERROR'
@@ -84,12 +129,22 @@ export const signup = form(signupSchema, async (user) => {
   throw redirect(303, `/auth/verify?email=${encodeURIComponent(user.email)}`);
 })
 
-export const login = form(loginSchema, async ({ identifier, password }) => {
+export const login = form(loginSchema, async ({ identifier, _password }) => {
   const { locals: { supabase, requestId } } = getRequestEvent();
+
+  // RATE LIMITING
+  const allowed = await checkRateLimit(`login:${identifier.toLowerCase()}`, 5, 60);
+
+  if (!allowed) {
+    throw error(429, {
+      message: 'Too many login attempts. Please wait a minute and try again.',
+      code: 'RATE_LIMITED'
+    });
+  }
   
   let email = identifier;
-  const isEmail = z.email().safeParse(identifier).success; // TODO: check if the email is a pisay email
-	
+  const isEmail = z.email().safeParse(identifier).success; 
+  
   if (!isEmail) {
     const dbUser = await db.query.users.findFirst({
       columns: { email: true },
@@ -108,11 +163,11 @@ export const login = form(loginSchema, async ({ identifier, password }) => {
   
   const { data, error: err } = await supabase.auth.signInWithPassword({
       email,
-      password
+      password: _password
   }) 
   
   if (err) {
-    logError('LOGIN_ERROR', { requestId, userIdentifier: identifier, error: err }); // TODO: add login attempt number
+    logError('LOGIN_ERROR', { requestId, userIdentifier: identifier, error: err });
     
     if (err instanceof AuthApiError && err.status === 400) {
       throw error(400, {
@@ -132,12 +187,6 @@ export const login = form(loginSchema, async ({ identifier, password }) => {
     userId: data.user.id,
     userIdentifier: identifier
   });
-  
-  // TODO: add check login number attempts
-  // Options:
-  // Rate limit by IP
-  // Rate limit by username
-  // Temporary account lockout
   
 	throw redirect(303, '/');
 })
@@ -171,6 +220,16 @@ export const sendResetPasswordEmail = form(z.object({
   email: z.email().endsWith("pshs.edu.ph", { error: "Please use your PSHS email" })
 }), async ({ email }) => {
   const { url, locals: { supabase, requestId } } = getRequestEvent()
+
+  // RATE LIMITING
+  const allowed = await checkRateLimit(`resetPassword:${email.toLowerCase()}`, 3, 900);
+
+  if (!allowed) {
+    throw error(429, {
+      message: 'Too many signup attempts with this email. Please wait a few minutes and try again.',
+      code: 'RATE_LIMITED'
+    });
+  }
   
   const { data, error: err } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${url.origin}/auth/update-password`
@@ -195,17 +254,17 @@ export const sendResetPasswordEmail = form(z.object({
   return { success: true };
 })
 
-export const updatePassword = form(updatePasswordSchema, async ({ newPassword }) => {
-  const { locals: { supabase, requestId } } = getRequestEvent()
+export const updatePassword = form(updatePasswordSchema, async ({ _newPassword }) => {
+  const { locals: { supabase, requestId }, cookies } = getRequestEvent()
   
   const { data: temp } = await supabase.auth.getSession();
   
-  if (!temp.session) {
+  if (!temp.session || !cookies.get('pwd_recovery')) {
     throw redirect(303, '/auth/login');
   }
   
   const { data, error: updateUserError } = await supabase.auth.updateUser({
-    password: newPassword
+    password: _newPassword
   })
   
   if (updateUserError) {
@@ -223,6 +282,8 @@ export const updatePassword = form(updatePasswordSchema, async ({ newPassword })
       userId: temp.session.user.id
     }); 
   }
+
+  cookies.delete('pwd_recovery', { path: '/auth/update-password' });
   
   const { error: signOutError } = await supabase.auth.signOut();
 
