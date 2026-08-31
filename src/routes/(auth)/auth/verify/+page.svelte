@@ -1,8 +1,19 @@
+<!--
+  Part of the Saypi-Blog project.
+
+  Copyright (c) 2026 Saypi Studio
+  Licensed under the Saypi-Blog Source Available License 1.0 (SSAL-1.0).
+
+  See the LICENSE file in the project root for license information.
+-->
+
 <script lang='ts'>
     import { page } from '$app/state';
 	import { resendVerificationEmail } from "$lib/remote/auth.remote";
+	import { onMount } from 'svelte';
 	import { toast } from 'svoast';
-	
+
+	let { data } = $props();
     let email = page.url.searchParams.get('email');
 
     let cooldownUntil = $state(0);
@@ -29,6 +40,12 @@
             toast[status === 429 ? 'warning' : 'error'](message);
         }
     }
+
+    onMount(() => {
+        if (data.unverified) {
+            toast.attention('Please verify your email before logging in.');
+        }
+    });
 </script>
 
 <svelte:head>

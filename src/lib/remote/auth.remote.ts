@@ -129,15 +129,15 @@ export const signup = form(signupSchema, async (user, issue) => {
   throw redirect(303, `/auth/verify?email=${encodeURIComponent(user.email)}`);
 })
 
-export const login = form(loginSchema, async ({ identifier, _password }) => {
-  const { locals: { supabase, requestId } } = getRequestEvent();
+export const login = form(loginSchema, async ({ identifier, _password, rememberMe }) => {
+  const { cookies, locals: { supabase, requestId } } = getRequestEvent();
 
   // RATE LIMITING
   const allowed = await checkRateLimit(`login:${identifier.toLowerCase()}`, 5, 60);
 
   if (!allowed) {
     throw error(429, {
-      message: 'Too many login attempts. Please wait a minute and try again.',
+      message: 'Too many login attempts. Please wait a few minutes and try again.',
       code: 'RATE_LIMITED'
     });
   }
@@ -160,6 +160,13 @@ export const login = form(loginSchema, async ({ identifier, _password }) => {
     
     email = dbUser?.email;
   }
+
+  cookies.set('remember_me', rememberMe ? '1' : '0', {
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+    httpOnly: true,
+    sameSite: 'lax'
+  });
   
   const { data, error: err } = await supabase.auth.signInWithPassword({
       email,
@@ -168,6 +175,11 @@ export const login = form(loginSchema, async ({ identifier, _password }) => {
   
   if (err) {
     logError('LOGIN_ERROR', { requestId, userIdentifier: identifier, error: err });
+
+    if (err instanceof AuthApiError && err.code === 'email_not_confirmed') {
+      logInfo('LOGIN_UNVERIFIED', { requestId, email });
+      throw redirect(303, `/auth/verify?email=${encodeURIComponent(email)}&unverified=1`);
+    }
     
     if (err instanceof AuthApiError && err.status === 400) {
       throw error(400, {

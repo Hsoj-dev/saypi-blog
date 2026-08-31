@@ -23,7 +23,8 @@ export const signupSchema = z.object({
 
 export const loginSchema = z.object({
   identifier: z.string().min(1, { error: "Please enter your username or email" }).trim(),
-  _password: z.string().min(1, { error: "Please enter your password" }).trim()
+  _password: z.string().min(1, { error: "Please enter your password" }).trim(),
+  rememberMe: z.coerce.boolean<boolean>().default(false)
 });
 
 export const updatePasswordSchema = z.object({

@@ -72,6 +72,13 @@ const withSupabase: Handle = async ({ event, resolve }) => {
        * will replicate previous/standard behavior (https://kit.svelte.dev/docs/types#public-types-cookies)
        */
       setAll: (cookiesToSet) => {
+        // "Remember me" preference, set at login and read on every request
+        // (including silent token refreshes) so it survives beyond the login
+        // request itself. Default to persistent (current behavior) if the
+        // preference cookie is missing - e.g. for anyone with an existing
+        // session from before this feature shipped.
+        const rememberMe = event.cookies.get('remember_me') !== '0';
+        
         /**
          * Note: You have to add the `path` variable to the
          * set and remove method due to sveltekit's cookie API
@@ -79,7 +86,14 @@ const withSupabase: Handle = async ({ event, resolve }) => {
          * will replicate previous/standard behavior (https://kit.svelte.dev/docs/types#public-types-cookies)
          */
         cookiesToSet.forEach(({ name, value, options }) => {
-          event.cookies.set(name, value, { ...options, path: '/' })
+          const finalOptions = { ...options, path: '/' };
+      
+          if (!rememberMe) {
+            delete finalOptions.maxAge;
+            delete finalOptions.expires;
+          }
+      
+          event.cookies.set(name, value, finalOptions);
         })
       },
     },

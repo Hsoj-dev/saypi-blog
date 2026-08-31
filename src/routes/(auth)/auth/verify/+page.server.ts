@@ -20,5 +20,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
   if (!isPSHS || !isEmail) throw redirect(303, '/')
 
-  return {};
+  const unverified = url.searchParams.get('unverified') === '1';
+  
+  return { unverified };
 };
