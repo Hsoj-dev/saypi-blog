@@ -16,7 +16,7 @@ export async function checkRateLimit(
   limit: number,
   windowSeconds: number
 ): Promise<boolean> {
-  const windowExpired = sql`${loginAttempts.windowStart} < now() - (${windowSeconds} || ' seconds')::interval`;
+  const windowExpired = sql`${loginAttempts.windowStart} < now() - make_interval(secs => ${windowSeconds})`;
 
   const [row] = await db
     .insert(loginAttempts)
