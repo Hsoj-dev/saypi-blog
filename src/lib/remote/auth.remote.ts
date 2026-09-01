@@ -237,7 +237,7 @@ export const sendResetPasswordEmail = form(z.object({
 
   if (!allowed) {
     throw error(429, {
-      message: 'Too many signup attempts with this email. Please wait a few minutes and try again.',
+      message: 'Too many resend attempts. Please wait a few minutes and try again.',
       code: 'RATE_LIMITED'
     });
   }
@@ -294,17 +294,12 @@ export const updatePassword = form(updatePasswordSchema, async ({ _newPassword }
     }); 
   }
 
-  cookies.delete('pwd_recovery', { path: '/auth/update-password' });
+  cookies.delete('pwd_recovery', { path: '/' });
   
   const { error: signOutError } = await supabase.auth.signOut();
 
   if (signOutError) {
     logError('LOGOUT_ERROR', { requestId, error: signOutError });
-
-    throw error(500, {
-      message: 'Failed to log out',
-      code: 'AUTH_LOGOUT_ERROR'
-    });
   }
   
   throw redirect(303, '/auth/login')
