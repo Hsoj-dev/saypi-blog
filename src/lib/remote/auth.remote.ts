@@ -204,7 +204,7 @@ export const login = form(loginSchema, async ({ identifier, _password, rememberM
 })
 
 export const logout = form(async () => {
-  const { locals } = getRequestEvent()
+  const { cookies, locals } = getRequestEvent()
 
   const { error: err } = await locals.supabase.auth.signOut();
   
@@ -221,9 +221,8 @@ export const logout = form(async () => {
     requestId: locals.requestId,
     userId: locals.session?.user.id,
   });
-  
-  locals.session = null;
-  locals.user = null;
+
+  cookies.delete('remember_me', { path: '/' });
   
 	throw redirect(303, '/auth/login')
 })
