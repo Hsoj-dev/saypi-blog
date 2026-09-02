@@ -34,3 +34,20 @@ export const updatePasswordSchema = z.object({
   message: "Passwords do not match",
   path: ["_confirmPassword"]
 });
+
+export const changePasswordSchema = z.object({
+  _currentPassword: z.string().min(1, { error: 'Current password is required' }),
+  _newPassword: z.string()
+    .min(6, { error: 'Password must be at least 6 characters long' })
+    .max(32, { error: "Bruh, can you really memorize that?? - Hsoj ToT" })
+    .trim(),
+  _confirmPassword: z.string()
+})
+.refine((data) => data._newPassword === data._confirmPassword, {
+  error: "Passwords don't match",
+  path: ['_confirmPassword']
+})
+.refine((data) => data._currentPassword !== data._newPassword, {
+  error: 'New password must be different from your current password',
+  path: ['_newPassword']
+});

@@ -10,7 +10,7 @@
 import { form, query, command, getRequestEvent } from '$app/server'
 import { redirect, error, invalid } from '@sveltejs/kit'
 import { supabaseAdmin } from '$lib/server/supabaseAdmin';
-import { signupSchema, loginSchema, updatePasswordSchema } from '$lib/schema/auth';
+import { signupSchema, loginSchema, updatePasswordSchema, changePasswordSchema } from '$lib/schema/auth';
 import { AuthApiError } from '@supabase/supabase-js';
 import { createDatabaseUser, getAvailableHandle } from '$lib/helpers/userCreation';
 import { getProfileHandle } from '$lib/utils/profile';
@@ -356,6 +356,54 @@ export const resendVerificationEmail = command(async () => {
   
   return { success: true };
 })
+
+export const changePassword = form(changePasswordSchema, async ({ _currentPassword, _newPassword }, issue) => {
+  const { locals: { supabase, user, requestId } } = getRequestEvent();
+
+  if (!user?.email) {
+    throw redirect(303, '/auth/login');
+  }
+
+  const allowed = await checkRateLimit(`change-password:${user.id}`, 5, 300);
+  
+  if (!allowed) {
+    throw error(429, {
+      message: 'Too many attempts. Please wait a few minutes and try again.',
+      code: 'RATE_LIMITED'
+    });
+  }
+
+  // Verify if user knows the current password
+  const { error: verifyErr } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: _currentPassword
+  });
+
+  if (verifyErr) {
+    logError('CHANGE_PASSWORD_VERIFY_FAILED', { requestId, userId: user.id, error: verifyErr });
+    invalid(issue._currentPassword('Current password is incorrect'));
+  }
+
+  const { error: updateErr } = await supabase.auth.updateUser({ password: _newPassword });
+
+  if (updateErr) {
+    logError('CHANGE_PASSWORD_ERROR', { requestId, userId: user.id, error: updateErr });
+    throw error(500, {
+      message: 'Failed to update password. Please try again.',
+      code: 'CHANGE_PASSWORD_ERROR'
+    });
+  }
+
+  logInfo('PASSWORD_CHANGED', { requestId, userId: user.id });
+
+  // Logout any other sessions from other devices/browsers, while remaining signed in
+  const { error: signOutErr } = await supabase.auth.signOut({ scope: 'others' });
+  if (signOutErr) {
+    logError('CHANGE_PASSWORD_SIGNOUT_OTHERS_ERROR', { requestId, userId: user.id, error: signOutErr });
+  }
+
+  return { success: true };
+});
 
 export const requireUser = query(async () => {
   const { locals } = getRequestEvent()
