@@ -14,26 +14,26 @@ import { v2 as cloudinary } from 'cloudinary';
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } from '$env/static/private';
 import { sequence } from '@sveltejs/kit/hooks';
 import { type Handle, isRedirect, redirect } from '@sveltejs/kit';
+import { db } from '$lib/server/db/db';
 
-// TODO: Update routes
 const PUBLIC_ROUTES = [
   '/',
   '/about',
   '/privacy',
   '/terms',
+  '/cookies',
+  '/donate',
+  '/faq',
+  '/guidelines',
   '/robots.txt',
 ]
 
-const AUTH_ROUTES = [
+const REDIRECT_IF_AUTHENTICATED  = [
   '/auth/login', 
   '/auth/signup',
   '/auth/verify',
-  '/auth/forgot-password'
-]
-
-const AUTHENTICATED_ONLY_PREFIXES = [
-  '/blog',
-  '/@'
+  '/auth/forgot-password',
+  // NOT /auth/update-password - a session is expected here mid-recovery
 ]
 
 // SENTRY
@@ -139,7 +139,6 @@ const withSupabase: Handle = async ({ event, resolve }) => {
 }
 
 // AUTH GUARD HOOK
-// TODO: Improve this hook
 const withAuthGuard: Handle = async ({ event, resolve }) => {
   const { session, user } = await event.locals.getValidatedSession()
   event.locals.session = session
@@ -148,41 +147,44 @@ const withAuthGuard: Handle = async ({ event, resolve }) => {
   const path = event.url.pathname
   
   // Redirect logged-in users away from auth routes
-  if (session && AUTH_ROUTES.includes(path)) {
+  if (session && REDIRECT_IF_AUTHENTICATED.includes(path)) {
     throw redirect(303, '/')
   }
   
   // ----------------------------
-  // 1. Public routes
+  // Public routes
   // ----------------------------
-  if (PUBLIC_ROUTES.includes(path)) {
+  if (PUBLIC_ROUTES.includes(path) || path.startsWith('/auth')) {
     return await resolve(event)
   }
   
   // ----------------------------
-  // 2. Private admin/mod routes
+  // Private admin/mod routes
   // ----------------------------
   if (path.startsWith('/private')) {
-    if (!session) throw redirect(303, '/auth/login') // Redirect unauthenticated users to the login page
-
-    if (
-      user?.role !== 'admin'
-    ) {
-      throw redirect(303, '/')
+    if (!session) throw redirect(303, '/auth/login')
+  
+    const dbUser = await db.query.users.findFirst({
+      columns: { accountType: true },
+      where: (u, { eq }) => eq(u.id, user!.id)
+    });
+  
+    if (path.startsWith('/private/admin')) {
+      if (dbUser?.accountType !== 'admin') throw redirect(303, '/')
+      return await resolve(event)
     }
-
-    return await resolve(event)
-  }
   
-  // ----------------------------
-  // 3. Authenticated-only routes???
-  // ----------------------------
-  const requiresAuth = AUTHENTICATED_ONLY_PREFIXES.some(prefix => path.startsWith(prefix))
-
-  if (requiresAuth && !session) {
-    throw redirect(303, '/auth/login')
-  }
+    if (path.startsWith('/private/moderator')) {
+      if (dbUser?.accountType !== 'admin' && dbUser?.accountType !== 'mod') throw redirect(303, '/')
+      return await resolve(event)
+    }
   
+    // Anything under /private that isn't admin or moderator - fail closed
+    throw redirect(303, '/')
+  }
+
+  if (!session) throw redirect(303, '/auth/login')
+
   return await resolve(event)
 }
 
