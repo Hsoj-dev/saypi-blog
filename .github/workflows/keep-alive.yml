@@ -9,17 +9,9 @@ on:
 jobs:
   ping-supabase:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: [Development, Production]
     steps:
-      - name: Ping ${{ matrix.environment }}
-        # Map specific environment variables based on the current matrix loop
-        env:
-          SUPABASE_URL: ${{ matrix.environment == 'Development' && secrets.DEV_SUPABASE_URL || secrets.PROD_SUPABASE_URL }}
-          SUPABASE_KEY: ${{ matrix.environment == 'Development' && secrets.DEV_SUPABASE_KEY || secrets.PROD_SUPABASE_KEY }}
+      - name: Ping Production
         run: |
-          curl -if -X GET "$SUPABASE_URL/rest/v1/keepalive?select=id&limit=1" \
-            -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY"
+          curl -if -X GET "${{ secrets.PROD_SUPABASE_URL }}/rest/v1/keepalive?select=id&limit=1" \
+          -H "apikey: ${{ secrets.PROD_SUPABASE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.PROD_SUPABASE_KEY }}"
