@@ -7,8 +7,16 @@
  * See the LICENSE file in the project root for license information.
  */
 
- import { pgTable, integer } from 'drizzle-orm/pg-core';
+import { pgTable, integer, pgPolicy } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
  
  export const keepalive = pgTable('keepalive', {
 	id: integer('id').primaryKey(),
- }).enableRLS();
+ }, () => [
+	pgPolicy('Allow public read for keepalive', {
+		for: 'select',
+		to: ['anon', 'authenticated'],
+		using: sql`true`,
+	}),
+]).enableRLS();
+ 
