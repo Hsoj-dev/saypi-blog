@@ -12,16 +12,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: Development
-            url_secret: DEV_SUPABASE_URL
-            key_secret: DEV_SUPABASE_KEY
-          - name: Production
-            url_secret: PROD_SUPABASE_URL
-            key_secret: PROD_SUPABASE_KEY
+        environment: [Development, Production]
     steps:
-      - name: Ping ${{ matrix.name }}
+      - name: Ping ${{ matrix.environment }}
+        # Map specific environment variables based on the current matrix loop
+        env:
+          SUPABASE_URL: ${{ matrix.environment == 'Development' && secrets.DEV_SUPABASE_URL || secrets.PROD_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ matrix.environment == 'Development' && secrets.DEV_SUPABASE_KEY || secrets.PROD_SUPABASE_KEY }}
         run: |
-          curl -if -X GET "${{ secrets[matrix.url_secret] }}/rest/v1/keepalive?select=id&limit=1" \
-          -H "apikey: ${{ secrets[matrix.key_secret] }}" \
-          -H "Authorization: Bearer ${{ secrets[matrix.key_secret] }}"
+          curl -if -X GET "$SUPABASE_URL/rest/v1/keepalive?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY"
