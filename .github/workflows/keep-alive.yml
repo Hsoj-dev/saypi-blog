@@ -9,9 +9,19 @@ on:
 jobs:
   ping-supabase:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Development
+            url_secret: DEV_SUPABASE_URL
+            key_secret: DEV_SUPABASE_KEY
+          - name: Production
+            url_secret: PROD_SUPABASE_URL
+            key_secret: PROD_SUPABASE_KEY
     steps:
-      - name: Ping Production
+      - name: Ping ${{ matrix.name }}
         run: |
-          curl -if -X GET "${{ secrets.PROD_SUPABASE_URL }}/rest/v1/keepalive?select=id&limit=1" \
-          -H "apikey: ${{ secrets.PROD_SUPABASE_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.PROD_SUPABASE_KEY }}"
+          curl -if -X GET "${{ secrets[matrix.url_secret] }}/rest/v1/keepalive?select=id&limit=1" \
+          -H "apikey: ${{ secrets[matrix.key_secret] }}" \
+          -H "Authorization: Bearer ${{ secrets[matrix.key_secret] }}"
